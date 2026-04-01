@@ -22,7 +22,7 @@ import { useTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/DashboardRounded';
 import LogoutIcon from '@mui/icons-material/LogoutRounded';
 import DarkModeIcon from '@mui/icons-material/DarkModeRounded';
-import LightModeIcon from '@mui/icons-material/wbSunnyRounded';
+import LightModeIcon from '@mui/icons-material/WbSunnyRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMoreRounded';
 import ExpandLessIcon from '@mui/icons-material/ExpandLessRounded';
 // Iconos Super Admin
