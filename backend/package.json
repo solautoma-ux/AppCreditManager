@@ -1,0 +1,37 @@
+{
+  "name": "control-creditos-backend",
+  "version": "1.0.0",
+  "description": "Backend para el Sistema de Control de Créditos",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "lint": "eslint src/**/*.js"
+  },
+  "keywords": [
+    "creditos",
+    "finanzas",
+    "supabase",
+    "node"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "nodemailer": "^8.0.1",
+    "pg": "^8.17.2",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "nodemon": "^3.0.2"
+  }
+}

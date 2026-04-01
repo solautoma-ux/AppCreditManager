@@ -1,0 +1,37 @@
+# Dependencias
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Archivos de Entorno (SEGURIDAD CRÍTICA - NUNCA SUBIR)
+.env
+.env.local
+.env.staging
+.env.production
+frontend/.env
+backend/.env
+
+# Build outputs
+dist/
+build/
+frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# SQL Backups y Scripts temporales (No subirlos a GitHub)
+all_migrations.sql
+prod_full_schema.sql
+base_schema.sql
+database/backups/
+scripts/apply-all-migrations.js
+backend/scripts/apply-all-migrations.js
+backend/scripts/extract-schema.js
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
