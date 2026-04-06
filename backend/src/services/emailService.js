@@ -12,10 +12,12 @@ const transporter = nodemailer.createTransport({
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
-    // Fuerza a Node.js a usar IPv4 para evitar el error ENETUNREACH en Render
+    // Force Node's socket to strictly use IPv4
     tls: {
         rejectUnauthorized: false
-    }
+    },
+    // Nodemailer passthrough to net.connect
+    family: 4 
 });
 
 // Verify connection configuration

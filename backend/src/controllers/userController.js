@@ -43,13 +43,15 @@ export const registerPayment = async (req, res) => {
  */
 export const inviteUser = async (req, res) => {
     try {
-        const { email, nombre, apellido, cedula, movil, rol, admin_padre_id } = req.body;
+        let { email, nombre, apellido, cedula, movil, rol, admin_padre_id } = req.body;
         const creatorId = req.user?.id; // Assuming auth middleware populates this
 
         // 1. Validation
         if (!email || !nombre || !rol) {
             return res.status(400).json({ error: 'Faltan campos obligatorios' });
         }
+        
+        email = email.toLowerCase().trim();
 
         // 2. Check if user already exists
         const { data: existingUser } = await supabase
