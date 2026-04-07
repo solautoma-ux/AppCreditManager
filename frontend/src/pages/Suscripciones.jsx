@@ -102,7 +102,21 @@ const AdminCard = ({ admin, onViewHistory, onEdit, onToggleStatus, onWhatsApp, o
 
     // Datos de suscripción (snake_case directo de Supabase)
     const sub = admin.suscripcion || {};
-    const int_diasMora = sub.dias_mora || 0;
+    
+    // Cálculo de mora en tiempo real vs fecha DB
+    let int_diasMora = 0;
+    if (sub.fecha_proximo_pago) {
+        // Parsear fechas asumiendo misma hora para precisión de días completos
+        const [y, m, d] = sub.fecha_proximo_pago.split('T')[0].split('-').map(Number);
+        const dueDate = new Date(y, m - 1, d);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalizar a medianoche de hoy
+
+        if (today > dueDate) {
+            int_diasMora = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+        }
+    }
+    
     const bol_hasMora = int_diasMora > 0;
     const str_tipoPlan = sub.tipo_plan || 'mensual';
 
