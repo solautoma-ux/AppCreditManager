@@ -64,18 +64,20 @@ export const userService = {
             // Lista de campos que pertenecen a la tabla usuarios
             const validUserFields = ['email', 'nombre', 'apellido', 'cedula', 'movil', 'estado', 'rol'];
 
-            // Clasificar los campos
+            // Clasificar los campos (Evitando strings vacíos en fechas)
             Object.keys(updates).forEach(key => {
+                const value = updates[key];
+                
                 if (validUserFields.includes(key)) {
-                    userFields[key] = updates[key];
-                } else if (key === 'tipoPlan') {
-                    subscriptionFields.tipo_plan = updates[key];
-                } else if (key === 'montoSuscripcion') {
-                    subscriptionFields.monto_mensual = updates[key];
-                } else if (key === 'fechaInicioSuscripcion') {
-                    subscriptionFields.fecha_inicio_suscripcion = updates[key];
-                } else if (key === 'fechaVencimiento') {
-                    subscriptionFields.fecha_proximo_pago = updates[key];
+                    userFields[key] = value;
+                } else if (key === 'tipoPlan' && value) {
+                    subscriptionFields.tipo_plan = value;
+                } else if (key === 'montoSuscripcion' && value !== undefined && value !== '') {
+                    subscriptionFields.monto_mensual = value;
+                } else if (key === 'fechaInicioSuscripcion' && value && value !== '') {
+                    subscriptionFields.fecha_inicio_suscripcion = value;
+                } else if (key === 'fechaVencimiento' && value && value !== '') {
+                    subscriptionFields.fecha_proximo_pago = value;
                 }
             });
 
