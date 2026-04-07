@@ -242,18 +242,14 @@ export const userService = {
         const { data, error } = await query;
         if (error) throw error;
 
-        // DEBUG TEMPORAL: Ver qué devuelve Supabase para suscripciones
-        if (data && data.length > 0) {
-            console.log('[DEBUG] Primer usuario raw:', JSON.stringify(data[0], null, 2));
-            console.log('[DEBUG] suscripcion raw:', data[0].suscripcion);
-        }
-
         return data.map(user => ({
             ...user,
             encargados: user.encargados?.[0]?.count || 0,
             carteras: user.carteras?.[0]?.count || 0,
             carteras_count: user.carteras_encargados?.[0]?.count || 0,
-            // Intentar ambas formas: array o objeto directo
+            // Supabase puede devolver la relación como array (1:N) o como objeto (1:1)
+            // según si la FK está configurada explícitamente en la BD.
+            // Esta lógica maneja ambos casos correctamente.
             suscripcion: Array.isArray(user.suscripcion)
                 ? (user.suscripcion?.[0] || null)
                 : (user.suscripcion || null)
