@@ -24,18 +24,22 @@ const PrivateRoute = ({ children }) => {
     const location = useLocation();
 
     if (loading) {
-        return <div>Cargando...</div>; // O un Spinner bonito
+        return <div>Cargando...</div>;
     }
 
+    // Sin sesión → al login
     if (!user) {
-        // Preservar query params y hash (ej: error de Supabase)
         const redirectPath = `/login${location.search}${location.hash}`;
         return <Navigate to={redirectPath} replace />;
     }
 
-    // Si el usuario está autenticado pero no tiene rol (no está en public.usuarios)
-    // O está INACTIVO
-    if ((!user.rol && user.is_registered === false) || user.estado === 'inactivo') {
+    // Usuario bloqueado: existe en Auth pero no en la BD pública (cuenta eliminada / no invitada)
+    if (user._error) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // Usuario sin rol válido o inactivo → a unauthorized
+    if (!user.rol || user.is_registered === false || user.estado === 'inactivo') {
         return <Navigate to="/unauthorized" replace />;
     }
 
@@ -47,7 +51,7 @@ const RootRedirect = () => {
     const { user, loading } = useAuth();
 
     if (loading) return <div>Cargando...</div>;
-    if (!user) return <Navigate to="/login" replace />;
+    if (!user || user._error) return <Navigate to="/login" replace />;
 
     // Super Admin -> Suscripciones
     if (user.rol === 'super_admin') {
