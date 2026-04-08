@@ -69,7 +69,21 @@ export const AuthProvider = ({ children }) => {
                 }
             }
 
-            // 3. Verificar si tiene suscripción (Auto-repair logic)
+            // 3. Si después de todo el proceso data sigue siendo null,
+            //    el usuario existe en Auth pero NO en la BD (fue eliminado o nunca fue invitado).
+            //    Cerrar sesión automáticamente y mostrar mensaje al usuario.
+            if (!data) {
+                console.warn('⛔ Usuario autenticado sin perfil en la BD. Cerrando sesión...');
+                await supabase.auth.signOut();
+                setUser({ 
+                    _error: true,
+                    _errorMessage: 'Tu cuenta no está registrada en este sistema. Contacta al administrador para recibir una invitación.'
+                });
+                setLoading(false);
+                return;
+            }
+
+            // 4. Verificar si tiene suscripción (Auto-repair logic)
             const { data: existingSub } = await supabase
                 .from('admin_subscriptions')
                 .select('id')

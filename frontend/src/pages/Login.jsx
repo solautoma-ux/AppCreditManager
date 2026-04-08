@@ -11,17 +11,17 @@ const Login = () => {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (user) {
-            navigate('/'); // Redirigir al Dashboard si ya está logueado
+        // Si el usuario tiene un perfil válido y registrado, redirigir al Dashboard
+        if (user && !user._error) {
+            navigate('/');
             return;
         }
 
-        // DEBUG: Log completo para ver qué devuelve Supabase
-        console.log('🔍 Login URL Debug:', {
-            search: location.search,
-            hash: location.hash,
-            pathname: location.pathname
-        });
+        // Si el AuthContext detectó que el usuario no está registrado en la BD
+        if (user?._error && user?._errorMessage) {
+            setError(user._errorMessage);
+            return;
+        }
 
         // Supabase puede devolver errores en query params (?error=...) o hash (#error=...)
         const hashParams = new URLSearchParams(location.hash.substring(1));
@@ -33,7 +33,6 @@ const Login = () => {
 
         if (errorDescription || errorCode) {
             console.error("Login Error Detected:", { errorCode, errorDescription });
-            // Traducir mensaje genérico del trigger
             if (errorDescription?.includes('Acceso denegado') || errorDescription?.includes('Database error') || errorCode === 'server_error') {
                 setError('⛔ Acceso restringido. Tu usuario no ha sido registrado por un administrador.');
             } else {

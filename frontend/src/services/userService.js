@@ -428,5 +428,35 @@ export const userService = {
             console.error('Error in renewSubscription:', error);
             throw error;
         }
+    },
+
+    /**
+     * Ejecuta el reset completo del sistema.
+     * Llama al backend (service_role) para borrar tablas transaccionales,
+     * usuarios de public.usuarios y usuarios de auth.users (excepto el Super Admin).
+     * @returns {object} { success, message }
+     */
+    resetCompleto: async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) throw new Error('No autenticado');
+
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/users/reset-completo`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({})
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Error al resetear el sistema');
+            return result;
+        } catch (error) {
+            console.error('[resetCompleto] Error:', error);
+            throw error;
+        }
     }
 };

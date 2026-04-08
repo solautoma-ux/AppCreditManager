@@ -11,6 +11,8 @@ import { CircularProgress } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../services/supabaseClient';
+import { userService } from '../services/userService';
+import { apiService } from '../services/apiService';
 
 const Configuracion = () => {
     const { user } = useAuth();
@@ -84,24 +86,27 @@ const Configuracion = () => {
         return <Alert severity="error">Acceso denegado. Solo Super Admin puede ver esta sección.</Alert>;
     }
 
+    /**
+     * Ejecuta el reset completo del sistema via el backend.
+     * El backend: (1) limpia las tablas de BD, (2) borra admins/encargados de public.usuarios,
+     * (3) borra a todos los usuarios de auth.users excepto el Super Admin.
+     */
     const handleReset = async () => {
         if (confirmText !== 'ELIMINAR TODO') return;
 
         setLoading(true);
         try {
-            const { data, error } = await supabase.rpc('reset_sistema_completo');
+            // Llamar al backend (service_role) que también limpia auth.users
+            const result = await userService.resetCompleto();
 
-            if (error) throw error;
-            if (data && !data.success) throw new Error(data.message);
-
-            showToast('Sistema reseteado exitosamente', 'success');
+            showToast(result.message || 'Sistema reseteado exitosamente', 'success');
             setModalOpen(false);
             setConfirmText('');
-            // Optional: Reload window to clear all frontend states/caches
+            // Recargar para limpiar estados del frontend
             window.location.reload();
         } catch (err) {
-            console.error(err);
-            showToast('Error al resetear: ' + err.message, 'error');
+            console.error('[RESET] Error:', err);
+            showToast('Error al resetear: ' + (err.message || err), 'error');
         } finally {
             setLoading(false);
         }
@@ -224,7 +229,8 @@ const Configuracion = () => {
                         <li><Typography variant="body2" color="text.secondary">Relaciones de Encargados</Typography></li>
                     </ul>
                     <Typography variant="body2" fontWeight="bold" paragraph>
-                        Nota: Los usuarios (Administradores y Encargados) NO serán eliminados.
+                        ⚠️ Esta acción eliminará también los accesos de todos los admins y encargados.
+                        Solo el Super Admin será preservado.
                     </Typography>
 
                     <Button

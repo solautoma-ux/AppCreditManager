@@ -1,5 +1,5 @@
 import express from 'express';
-import { inviteUser, resendInvite, deleteUser, getSubscriptionDetails, registerPayment, renewUserSubscription } from '../controllers/userController.js';
+import { inviteUser, resendInvite, deleteUser, getSubscriptionDetails, registerPayment, renewUserSubscription, resetCompleto } from '../controllers/userController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -11,6 +11,9 @@ router.use(authenticate);
 router.post('/invite', inviteUser);
 router.post('/resend-invite', resendInvite);
 router.delete('/:id', deleteUser);
+
+// System reset (Super Admin only) - also cleans Supabase Auth users
+router.post('/reset-completo', resetCompleto);
 
 // Subscription Routes
 router.get('/:id/subscription/history', getSubscriptionDetails);

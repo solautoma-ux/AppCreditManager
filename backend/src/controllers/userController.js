@@ -357,3 +357,71 @@ export const renewUserSubscription = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+/**
+ * Reset completo del sistema.
+ * Borra todas las tablas transaccionales y usuarios (excecto el Super Admin)
+ * desde la BD pública (vía RPC) y también de Supabase Auth (vía service_role).
+ * Solo puede ser invocado por un Super Admin autenticado.
+ */
+export const resetCompleto = async (req, res) => {
+    try {
+        const str_requestingId = req.user.id;
+
+        // 1. Verificar que el solicitante es Super Admin
+        const { data: requesterData, error: reqError } = await supabase
+            .from('usuarios')
+            .select('rol, id')
+            .eq('auth_id', str_requestingId)
+            .maybeSingle();
+
+        if (reqError || requesterData?.rol !== 'super_admin') {
+            return res.status(403).json({ error: 'No autorizado. Solo el Super Admin puede resetear el sistema.' });
+        }
+
+        const str_superAdminAuthId = str_requestingId;
+
+        // 2. Ejecutar el reset de tablas en BD pública (RPC maneja el borrado de usuarios y datos)
+        const { data: rpcResult, error: rpcError } = await supabase
+            .rpc('reset_sistema_completo');
+
+        if (rpcError) throw rpcError;
+        if (rpcResult && !rpcResult.success) throw new Error(rpcResult.message);
+
+        console.log('[RESET] BD pública reseteada:', rpcResult?.message);
+
+        // 3. Listar todos los usuarios de Supabase Auth
+        const { data: { users: authUsers }, error: listError } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+
+        if (listError) {
+            console.warn('[RESET] No se pudo listar auth.users:', listError.message);
+        } else {
+            // 4. Borrar de Auth a todos excepto el Super Admin
+            let int_borrados = 0;
+            let int_errores = 0;
+
+            for (const authUser of authUsers) {
+                if (authUser.id === str_superAdminAuthId) continue; // Preservar Super Admin
+
+                const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(authUser.id);
+                if (deleteAuthError) {
+                    console.warn(`[RESET] Error borrando auth user ${authUser.email}:`, deleteAuthError.message);
+                    int_errores++;
+                } else {
+                    int_borrados++;
+                }
+            }
+
+            console.log(`[RESET] Auth.users limpiados: ${int_borrados} borrados, ${int_errores} errores.`);
+        }
+
+        return res.json({
+            success: true,
+            message: 'Sistema reseteado exitosamente. Solo el Super Admin fue preservado.'
+        });
+
+    } catch (error) {
+        console.error('[RESET] Error en resetCompleto:', error);
+        return res.status(500).json({ error: error.message || 'Error interno al resetear el sistema.' });
+    }
+};
