@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../services/supabaseClient';
 import { userService } from '../services/userService';
-import { apiService } from '../services/apiService';
+
 
 const Configuracion = () => {
     const { user } = useAuth();
