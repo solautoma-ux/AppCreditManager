@@ -1,88 +1,78 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Create reusable transporter object using the default SMTP transport
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-    // Force Node's socket to strictly use IPv4
-    tls: {
-        rejectUnauthorized: false
-    },
-    // Nodemailer passthrough to net.connect
-    family: 4 
-});
+/**
+ * Cliente de Resend inicializado con la API Key del entorno.
+ * Render permite conexiones HTTP salientes (a diferencia de SMTP puerto 587/465).
+ */
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Verify connection configuration
-transporter.verify(function (error, success) {
-    if (error) {
-        console.error('❌ Nodemailer Error:', error);
-    } else {
-        console.log('✅ Server is ready to take our messages. Email User:', process.env.EMAIL_USER);
-    }
-});
+/** Dirección remitente configurable desde variables de entorno */
+const str_emailFrom = process.env.EMAIL_FROM || 'noreply@resend.dev';
 
 /**
- * Send an email
- * @param {string} to - Recipient email
- * @param {string} subject - Email subject
- * @param {string} html - HTML content
+ * Envía un email genérico usando la API de Resend.
+ * @param {string} to - Email del destinatario
+ * @param {string} subject - Asunto del email
+ * @param {string} html - Contenido HTML del email
+ * @returns {{ success: boolean, messageId?: string, error?: any }}
  */
 export const sendEmail = async (to, subject, html) => {
     try {
-        const info = await transporter.sendMail({
-            from: `"Control Créditos" <${process.env.EMAIL_USER}>`, // sender address
-            to, // list of receivers
-            subject, // Subject line
-            html, // html body
+        const { data, error } = await resend.emails.send({
+            from: `Control Créditos <${str_emailFrom}>`,
+            to,
+            subject,
+            html
         });
 
-        console.log("Message sent: %s", info.messageId);
-        return { success: true, messageId: info.messageId };
-    } catch (error) {
-        console.error("Error sending email:", error);
-        return { success: false, error };
+        if (error) {
+            console.error('❌ Resend error:', error);
+            return { success: false, error };
+        }
+
+        console.log('✅ Email enviado correctamente. ID:', data.id);
+        return { success: true, messageId: data.id };
+
+    } catch (err) {
+        console.error('❌ Error inesperado enviando email:', err);
+        return { success: false, error: err };
     }
 };
 
 /**
- * Send welcome email to new user
- * @param {string} email - User email
- * @param {string} nombre - User name
- * @param {string} rol - User role
- * @param {string} password - Temporary password (if applicable) or just link
+ * Envía el email de bienvenida/invitación a un nuevo usuario del sistema.
+ * @param {string} email - Email del usuario
+ * @param {string} nombre - Nombre del usuario
+ * @param {string} rol - Rol asignado (admin, encargado)
  */
 export const sendWelcomeEmail = async (email, nombre, rol) => {
-    const loginUrl = `${process.env.FRONTEND_URL}/login`; // Configurable URL
+    const str_loginUrl = `${process.env.FRONTEND_URL}/login`;
+    const str_appName = process.env.APP_NAME || 'Control de Créditos';
 
-    const subject = `Bienvenido al ${process.env.APP_NAME}`;
+    const str_subject = `Bienvenido al ${str_appName}`;
 
-    const html = `
+    const str_html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
             <h2 style="color: #4F46E5;">¡Hola, ${nombre}! 👋</h2>
             <p>Has sido registrado como <strong>${rol.toUpperCase()}</strong> en el Sistema de Control de Créditos.</p>
             
-            <p>Para comenzar, por favor inicia sesión con tu cuenta de Google asociada a este correo (${email}).</p>
+            <p>Para comenzar, por favor inicia sesión con tu cuenta de Google asociada a este correo (<strong>${email}</strong>).</p>
             
             <div style="text-align: center; margin: 30px 0;">
-                <a href="${loginUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                <a href="${str_loginUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
                     Ingresar al Sistema
                 </a>
             </div>
             
-            <p style="color: #666; font-size: 14px;">Si no reconoce este registro, por favor ignore este correo.</p>
+            <p style="color: #666; font-size: 14px;">Si no reconoces este registro, por favor ignora este correo.</p>
             
             <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-            <p style="color: #999; font-size: 12px; text-align: center;">${process.env.APP_NAME} © ${new Date().getFullYear()}</p>
+            <p style="color: #999; font-size: 12px; text-align: center;">${str_appName} © ${new Date().getFullYear()}</p>
         </div>
     `;
 
-    return sendEmail(email, subject, html);
+    return sendEmail(email, str_subject, str_html);
 };
