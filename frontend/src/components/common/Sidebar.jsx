@@ -45,7 +45,7 @@ const menuItemsByRole = {
         { label: 'Suscripciones', icon: <ReceiptLongIcon />, path: '/suscripciones' },
     ],
     admin: [
-        { label: 'Home', icon: <DashboardIcon />, path: '/home' },
+        { label: 'Gestión de hoy', icon: <DashboardIcon />, path: '/home' },
         { label: 'Clientes', icon: <PeopleIcon />, path: '/clientes' },
         { label: 'Carteras', icon: <AccountBalanceWalletIcon />, path: '/carteras' },
         { label: 'Préstamos', icon: <CreditCardIcon />, path: '/creditos' },
@@ -53,7 +53,7 @@ const menuItemsByRole = {
         { label: 'Reportes', icon: <AssessmentIcon />, path: '/reportes' },
     ],
     encargado: [
-        { label: 'Home', icon: <DashboardIcon />, path: '/home' },
+        { label: 'Gestión de hoy', icon: <DashboardIcon />, path: '/home' },
         { label: 'Clientes', icon: <PeopleIcon />, path: '/clientes' },
         { label: 'Mis Carteras', icon: <AccountBalanceWalletIcon />, path: '/carteras' },
         { label: 'Préstamos', icon: <CreditCardIcon />, path: '/creditos' },

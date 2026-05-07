@@ -23,7 +23,18 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Routes
 import userRoutes from './routes/userRoutes.js';
+import creditoRoutes from './routes/creditoRoutes.js';
+import carteraRoutes from './routes/carteraRoutes.js';
+import clienteRoutes from './routes/clienteRoutes.js';
+import pagoRoutes from './routes/pagoRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
+
 app.use('/api/users', userRoutes);
+app.use('/api/creditos', creditoRoutes);
+app.use('/api/carteras', carteraRoutes);
+app.use('/api/clientes', clienteRoutes);
+app.use('/api/pagos', pagoRoutes);
+app.use('/api/reportes', reportRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {

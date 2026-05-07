@@ -1,11 +1,8 @@
 import { supabase } from './supabaseClient';
 
 /**
- * Service for Financial Reports
- * All methods support role-based filtering:
- * - Admin: Pass adminId to see their carteras
- * - Encargado: Pass encargadoId to see only assigned carteras
- * - Super Admin: Pass neither to see everything
+ * Service for Financial Reports (Now consuming Backend API)
+ * All methods automatically support role-based filtering on the backend via JWT.
  */
 export const reportService = {
     /**
@@ -13,21 +10,23 @@ export const reportService = {
      * @param {Date|string} fechaInicio 
      * @param {Date|string} fechaFin 
      * @param {string|null} carteraId - Optional cartera filter
-     * @param {string|null} adminId - Filter by admin (for admins)
-     * @param {string|null} encargadoId - Filter by encargado assignment (for encargados)
      */
-    getFinancialKPIs: async (fechaInicio, fechaFin, carteraId = null, adminId = null, encargadoId = null) => {
+    getFinancialKPIs: async (fechaInicio, fechaFin, carteraId = null) => {
         try {
-            const { data, error } = await supabase.rpc('get_kpis_financieros', {
-                p_fecha_inicio: fechaInicio,
-                p_fecha_fin: fechaFin,
-                p_cartera_id: carteraId,
-                p_admin_id: adminId,
-                p_encargado_id: encargadoId
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) throw new Error('No autenticado');
+
+            let url = `${import.meta.env.VITE_API_URL}/reportes/kpis?fechaInicio=${encodeURIComponent(fechaInicio)}&fechaFin=${encodeURIComponent(fechaFin)}`;
+            if (carteraId) url += `&carteraId=${encodeURIComponent(carteraId)}`;
+
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (error) throw error;
-            return data;
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Error al obtener KPIs');
+            return result;
         } catch (error) {
             console.error('Error fetching KPIs:', error);
             throw error;
@@ -36,17 +35,24 @@ export const reportService = {
 
     /**
      * Obtiene el listado detallado de morosidad
+     * @param {string|null} carteraId - Optional cartera filter
      */
-    getDetailedMorosidad: async (carteraId = null, adminId = null, encargadoId = null) => {
+    getDetailedMorosidad: async (carteraId = null) => {
         try {
-            const { data, error } = await supabase.rpc('get_reporte_morosidad_detallado', {
-                p_cartera_id: carteraId,
-                p_admin_id: adminId,
-                p_encargado_id: encargadoId
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) throw new Error('No autenticado');
+
+            let url = `${import.meta.env.VITE_API_URL}/reportes/morosidad`;
+            if (carteraId) url += `?carteraId=${encodeURIComponent(carteraId)}`;
+
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (error) throw error;
-            return data;
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Error al obtener morosidad');
+            return result;
         } catch (error) {
             console.error('Error fetching Morosidad Detallada:', error);
             throw error;
@@ -55,19 +61,26 @@ export const reportService = {
 
     /**
      * Obtiene el listado detallado de movimientos (Desembolsos y Recaudos)
+     * @param {Date|string} fechaInicio 
+     * @param {Date|string} fechaFin 
+     * @param {string|null} carteraId - Optional cartera filter
      */
-    getDetailedMovements: async (fechaInicio, fechaFin, carteraId = null, adminId = null, encargadoId = null) => {
+    getDetailedMovements: async (fechaInicio, fechaFin, carteraId = null) => {
         try {
-            const { data, error } = await supabase.rpc('get_reporte_movimientos_detallados', {
-                p_fecha_inicio: fechaInicio,
-                p_fecha_fin: fechaFin,
-                p_cartera_id: carteraId,
-                p_admin_id: adminId,
-                p_encargado_id: encargadoId
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) throw new Error('No autenticado');
+
+            let url = `${import.meta.env.VITE_API_URL}/reportes/movimientos?fechaInicio=${encodeURIComponent(fechaInicio)}&fechaFin=${encodeURIComponent(fechaFin)}`;
+            if (carteraId) url += `&carteraId=${encodeURIComponent(carteraId)}`;
+
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (error) throw error;
-            return data;
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Error al obtener movimientos');
+            return result;
         } catch (error) {
             console.error('Error fetching Detailed Movements:', error);
             throw error;

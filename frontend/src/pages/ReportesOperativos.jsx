@@ -199,7 +199,7 @@ const ReportesOperativos = () => {
     const formatCurrency = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val);
 
     const renderKPICard = (title, value, color, subtitle = '') => (
-        <Card sx={{ height: '100%', borderRadius: 2, borderLeft: `5px solid ${color}`, boxShadow: '0 2px 10px 0 rgba(0,0,0,0.05)' }}>
+        <Card sx={{ height: '100%', borderRadius: '16px', borderLeft: `5px solid ${color}`, boxShadow: '0 2px 10px 0 rgba(0,0,0,0.05)' }}>
             <CardContent>
                 <Typography color="text.secondary" gutterBottom variant="overline" sx={{ fontWeight: 'bold' }}>
                     {title}
@@ -223,7 +223,7 @@ const ReportesOperativos = () => {
     };
 
     const renderMobileCard = (row) => (
-        <Card key={row.id || Math.random()} sx={{ mb: 2, borderRadius: 2, borderLeft: `4px solid ${row.tipo === 'Recaudo' ? theme.palette.success.main : row.tipo === 'Retiro Utilidad' ? theme.palette.warning.main : theme.palette.info.main}`, boxShadow: '0 2px 8px 0 rgba(0,0,0,0.05)' }}>
+        <Card key={row.id || Math.random()} sx={{ mb: 2, borderRadius: '16px', borderLeft: `4px solid ${row.tipo === 'Recaudo' ? theme.palette.success.main : row.tipo === 'Retiro Utilidad' ? theme.palette.warning.main : theme.palette.info.main}`, boxShadow: '0 2px 8px 0 rgba(0,0,0,0.05)' }}>
             <CardContent sx={{ pb: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                     <Box>
@@ -262,7 +262,7 @@ const ReportesOperativos = () => {
     return (
         <Box sx={{ p: isMobile ? 2 : 3 }}>
             {/* Header y Filtros */}
-            <Paper sx={{ p: isMobile ? 2 : 3, mb: 3, borderRadius: 2, boxShadow: '0 2px 10px 0 rgba(0,0,0,0.05)' }}>
+            <Paper sx={{ p: isMobile ? 2 : 3, mb: 3, borderRadius: '16px', boxShadow: '0 2px 10px 0 rgba(0,0,0,0.05)' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 3 }}>
                     <div>
                         <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
@@ -310,16 +310,18 @@ const ReportesOperativos = () => {
                             />
                         </Box>
                         <MuiTooltip title={tabIndex === 0 ? "Descargar reporte de movimientos" : "Descargar reporte de morosidad"}>
-                            <Button
-                                variant="contained"
-                                startIcon={<DownloadIcon />}
-                                onClick={handleExport}
-                                color="secondary"
-                                disabled={loading}
-                                fullWidth={isMobile}
-                            >
-                                Exportar
-                            </Button>
+                            <span>
+                                <Button
+                                    variant="contained"
+                                    startIcon={<DownloadIcon />}
+                                    onClick={handleExport}
+                                    color="secondary"
+                                    disabled={loading}
+                                    fullWidth={isMobile}
+                                >
+                                    Exportar
+                                </Button>
+                            </span>
                         </MuiTooltip>
                     </Box>
                 </Box>
@@ -389,7 +391,7 @@ const ReportesOperativos = () => {
                                         {sortedMovimientos.map((row, idx) => renderMobileCard(row))}
                                     </Box>
                                 ) : (
-                                    <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: '0 2px 10px 0 rgba(0,0,0,0.05)' }}>
+                                    <TableContainer component={Paper} sx={{ borderRadius: '16px', boxShadow: '0 2px 10px 0 rgba(0,0,0,0.05)' }}>
                                         <Table>
                                             <TableHead sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
                                                 <TableRow>
@@ -452,7 +454,7 @@ const ReportesOperativos = () => {
                                     </TableContainer>
                                 )
                             ) : (
-                                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2 }}>
+                                <Paper sx={{ p: 4, textAlign: 'center', borderRadius: '16px' }}>
                                     <Typography color="text.secondary">No hay movimientos registrados en este periodo.</Typography>
                                 </Paper>
                             )}
@@ -461,7 +463,7 @@ const ReportesOperativos = () => {
 
                     {/* TAB 1: MOROSIDAD DETALLADA */}
                     {tabIndex === 1 && (
-                        <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: '0 2px 10px 0 rgba(0,0,0,0.05)' }}>
+                        <TableContainer component={Paper} sx={{ borderRadius: '16px', boxShadow: '0 2px 10px 0 rgba(0,0,0,0.05)' }}>
                             <Table>
                                 <TableHead sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
                                     <TableRow>

@@ -86,21 +86,30 @@ const CreditoFormModal = ({ open, onClose, onSuccess, refinanceCredito = null })
 
     // Calcular simulación cuando cambian los términos
     useEffect(() => {
-        if (
-            formData.monto_capital &&
-            formData.tasa_interes &&
-            formData.numero_cuotas &&
-            activeStep >= 1
-        ) {
-            const sim = creditoService.simularCredito(
-                formData.monto_capital,
-                formData.tasa_interes,
-                formData.numero_cuotas,
-                formData.frecuencia,
-                formData.fecha_inicio
-            );
-            setSimulation(sim);
-        }
+        const fetchSimulation = async () => {
+            if (
+                formData.monto_capital &&
+                formData.tasa_interes &&
+                formData.numero_cuotas &&
+                activeStep >= 1
+            ) {
+                try {
+                    const sim = await creditoService.simularCredito(
+                        formData.monto_capital,
+                        formData.tasa_interes,
+                        formData.numero_cuotas,
+                        formData.frecuencia,
+                        formData.fecha_inicio
+                    );
+                    setSimulation(sim);
+                    setError(null);
+                } catch (err) {
+                    setError('Error al simular: ' + err.message);
+                    setSimulation(null);
+                }
+            }
+        };
+        fetchSimulation();
     }, [formData, activeStep]);
 
     const handleChange = (field) => (e) => {
@@ -189,7 +198,7 @@ const CreditoFormModal = ({ open, onClose, onSuccess, refinanceCredito = null })
             PaperProps={{ sx: { borderRadius: '16px' } }}
         >
             <DialogTitle sx={{ pb: 0 }}>
-                <Typography variant="h6" fontWeight="bold">
+                <Typography variant="h6" component="div" fontWeight="bold">
                     {refinanceCredito ? 'Refinanciar Préstamo' : 'Nuevo Préstamo'}
                 </Typography>
             </DialogTitle>
@@ -265,9 +274,14 @@ const CreditoFormModal = ({ open, onClose, onSuccess, refinanceCredito = null })
                             <TextField
                                 label="Monto a Prestar"
                                 fullWidth
-                                type="number"
-                                value={formData.monto_capital}
-                                onChange={handleChange('monto_capital')}
+                                type="text"
+                                inputMode="numeric"
+                                value={formData.monto_capital ? new Intl.NumberFormat('es-CO').format(formData.monto_capital) : ''}
+                                onChange={(e) => {
+                                    const rawValue = e.target.value.replace(/\D/g, '');
+                                    setFormData({ ...formData, monto_capital: rawValue });
+                                    setError(null);
+                                }}
                                 InputProps={{
                                     startAdornment: <InputAdornment position="start">$</InputAdornment>,
                                     sx: { borderRadius: 3 }

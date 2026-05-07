@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { sendWelcomeEmail } from '../services/emailService.js';
 import * as subscriptionService from '../services/subscriptionService.js';
+import { errorHandler } from '../utils/errorHandler.js';
 
 dotenv.config();
 
@@ -12,12 +13,11 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
  */
 export const getSubscriptionDetails = async (req, res) => {
     try {
-        const { id } = req.params;
-        const result = await subscriptionService.getSubscriptionHistory(id);
-        res.json(result);
+        const { id: str_id } = req.params;
+        const arr_subscriptionHistory = await subscriptionService.getSubscriptionHistory(str_id);
+        res.json(arr_subscriptionHistory);
     } catch (error) {
-        console.error('Error fetching subscription details:', error);
-        res.status(500).json({ error: error.message });
+        errorHandler(res, error, 'getSubscriptionDetails');
     }
 };
 
@@ -26,15 +26,14 @@ export const getSubscriptionDetails = async (req, res) => {
  */
 export const registerPayment = async (req, res) => {
     try {
-        const { id } = req.params;
-        const paymentData = req.body;
-        const registeredBy = req.user.id; // From auth middleware
+        const { id: str_id } = req.params;
+        const obj_paymentData = req.body;
+        const str_registeredBy = req.user.id; // From auth middleware
 
-        const payment = await subscriptionService.registerSubscriptionPayment(id, paymentData, registeredBy);
-        res.status(201).json(payment);
+        const obj_paymentResult = await subscriptionService.registerSubscriptionPayment(str_id, obj_paymentData, str_registeredBy);
+        res.status(201).json(obj_paymentResult);
     } catch (error) {
-        console.error('Error registering payment:', error);
-        res.status(500).json({ error: error.message });
+        errorHandler(res, error, 'registerPayment');
     }
 };
 
@@ -43,76 +42,81 @@ export const registerPayment = async (req, res) => {
  */
 export const inviteUser = async (req, res) => {
     try {
-        let { email, nombre, apellido, cedula, movil, rol, admin_padre_id } = req.body;
-        const creatorId = req.user?.id; // Assuming auth middleware populates this
+        const { email, nombre, apellido, cedula, movil, rol, admin_padre_id } = req.body;
+        
+        // Asignación con nomenclatura
+        let str_email = email;
+        const str_nombre = nombre;
+        const str_apellido = apellido;
+        const str_cedula = cedula;
+        const str_movil = movil;
+        const str_rol = rol;
+        const str_adminPadreId = admin_padre_id;
 
         // 1. Validation
-        if (!email || !nombre || !rol) {
+        if (!str_email || !str_nombre || !str_rol) {
             return res.status(400).json({ error: 'Faltan campos obligatorios' });
         }
         
-        email = email.toLowerCase().trim();
+        str_email = str_email.toLowerCase().trim();
 
         // 2. Check if user already exists
-        const { data: existingUser } = await supabase
+        const { data: obj_existingUser } = await supabase
             .from('usuarios')
             .select('id')
-            .eq('email', email)
+            .eq('email', str_email)
             .single();
 
-        if (existingUser) {
+        if (obj_existingUser) {
             return res.status(400).json({ error: 'El email ya está registrado en el sistema.' });
         }
 
         // 3. Create User in Public Table
-        const payload = {
-            email,
-            nombre,
-            apellido,
-            cedula,
-            movil,
-            rol,
+        const obj_payload = {
+            email: str_email,
+            nombre: str_nombre,
+            apellido: str_apellido,
+            cedula: str_cedula,
+            movil: str_movil,
+            rol: str_rol,
             estado: 'pendiente',
-            // admin_padre_id is optional, depends on logic
             created_at: new Date()
         };
 
-        if (rol === 'encargado' && admin_padre_id) {
-            payload.admin_padre_id = admin_padre_id;
+        if (str_rol === 'encargado' && str_adminPadreId) {
+            obj_payload.admin_padre_id = str_adminPadreId;
         }
 
-        const { data: newUser, error: insertError } = await supabase
+        const { data: obj_newUser, error: obj_insertError } = await supabase
             .from('usuarios')
-            .insert([payload])
+            .insert([obj_payload])
             .select()
             .single();
 
-        if (insertError) {
-            throw insertError;
+        if (obj_insertError) {
+            throw obj_insertError;
         }
 
         // 4. Send Welcome Email
-        // We don't await this to keep response fast, or we can await if we want to confirm sending
-        const emailResult = await sendWelcomeEmail(email, nombre, rol);
+        const obj_emailResult = await sendWelcomeEmail(str_email, str_nombre, str_rol);
 
-        if (!emailResult.success) {
-            console.warn('Usuario creado pero falló el envío de correo:', emailResult.error);
+        if (!obj_emailResult.success) {
+            console.warn('Usuario creado pero falló el envío de correo:', obj_emailResult.error);
             return res.status(201).json({
                 success: true,
-                data: newUser,
+                data: obj_newUser,
                 message: 'Usuario creado, pero hubo un error al enviar el correo.'
             });
         }
 
         return res.status(201).json({
             success: true,
-            data: newUser,
+            data: obj_newUser,
             message: 'Usuario creado y notificación enviada.'
         });
 
     } catch (error) {
-        console.error('Error in inviteUser:', error);
-        return res.status(500).json({ error: error.message || 'Error interno del servidor' });
+        errorHandler(res, error, 'inviteUser');
     }
 };
 
@@ -121,40 +125,39 @@ export const inviteUser = async (req, res) => {
  */
 export const resendInvite = async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email: str_email } = req.body;
 
-        if (!email) {
+        if (!str_email) {
             return res.status(400).json({ error: 'El email es obligatorio' });
         }
 
         // Check user existence
-        const { data: user } = await supabase
+        const { data: obj_user } = await supabase
             .from('usuarios')
             .select('id, nombre, rol, estado')
-            .eq('email', email)
+            .eq('email', str_email)
             .single();
 
-        if (!user) {
+        if (!obj_user) {
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }
 
-        if (user.estado !== 'pendiente') {
+        if (obj_user.estado !== 'pendiente') {
             return res.status(400).json({ error: 'El usuario ya no está en estado pendiente.' });
         }
 
         // Send Welcome Email
-        const emailResult = await sendWelcomeEmail(email, user.nombre, user.rol);
+        const obj_emailResult = await sendWelcomeEmail(str_email, obj_user.nombre, obj_user.rol);
 
-        if (!emailResult.success) {
-            console.error('Error sending email:', emailResult.error);
+        if (!obj_emailResult.success) {
+            console.error('Error sending email:', obj_emailResult.error);
             return res.status(500).json({ error: 'Error al enviar el correo' });
         }
 
         return res.status(200).json({ success: true, message: 'Invitación reenviada correctamente' });
 
     } catch (error) {
-        console.error('Error in resendInvite:', error);
-        return res.status(500).json({ error: 'Error interno del servidor' });
+        errorHandler(res, error, 'resendInvite');
     }
 };
 
@@ -163,74 +166,74 @@ export const resendInvite = async (req, res) => {
  */
 export const deleteUser = async (req, res) => {
     try {
-        const { id } = req.params; // User to be deleted
-        const requestingUserId = req.user.id; // User performing the action
+        const { id: str_id } = req.params; // User to be deleted
+        const str_requestingUserId = req.user.id; // User performing the action
 
         // 1. Identify Requester Role (Security Check)
-        console.log(`[DEBUG] deleteUser requested by: ${requestingUserId}`);
+        console.log(`[DEBUG] deleteUser requested by: ${str_requestingUserId}`);
 
-        const { data: requesterData, error: requesterError } = await supabase
+        let { data: obj_requesterData, error: obj_requesterError } = await supabase
             .from('usuarios')
             .select('rol')
-            .eq('id', requestingUserId)
+            .eq('id', str_requestingUserId)
             .single();
 
-        if (!requesterData) {
+        if (!obj_requesterData) {
             console.log('[DEBUG] Requester missing in public.usuarios. Attempting SMART REPAIR...');
 
             try {
                 // 1. Get Auth Data
-                const { data: { user: authUser }, error: authError } = await supabase.auth.admin.getUserById(requestingUserId);
+                const { data: { user: obj_authUser } } = await supabase.auth.admin.getUserById(str_requestingUserId);
 
-                if (authUser && authUser.email) {
+                if (obj_authUser && obj_authUser.email) {
                     // 2. Check for ORPHAN profile by Email
-                    const { data: orphanProfile } = await supabase
+                    const { data: obj_orphanProfile } = await supabase
                         .from('usuarios')
                         .select('*')
-                        .eq('email', authUser.email)
+                        .eq('email', obj_authUser.email)
                         .single();
 
-                    if (orphanProfile) {
-                        console.log(`[FIX] FOUND ORPHAN PROFILE (ID: ${orphanProfile.id}) for Email: ${authUser.email}. Migrating to new ID: ${requestingUserId}...`);
+                    if (obj_orphanProfile) {
+                        console.log(`[FIX] FOUND ORPHAN PROFILE (ID: ${obj_orphanProfile.id}) for Email: ${obj_authUser.email}. Migrating to new ID: ${str_requestingUserId}...`);
 
-                        // 3. Migrate Records (Update FKs manually to be safe against non-cascading FKs)
-                        await supabase.from('carteras').update({ admin_id: requestingUserId }).eq('admin_id', orphanProfile.id);
-                        await supabase.from('clientes').update({ admin_id: requestingUserId }).eq('admin_id', orphanProfile.id);
-                        await supabase.from('usuarios').update({ admin_padre_id: requestingUserId }).eq('admin_padre_id', orphanProfile.id);
-                        await supabase.from('creditos').update({ creado_por_id: requestingUserId }).eq('creado_por_id', orphanProfile.id);
-                        await supabase.from('pagos').update({ registrado_por_id: requestingUserId }).eq('registrado_por_id', orphanProfile.id);
+                        // 3. Migrate Records
+                        await supabase.from('carteras').update({ admin_id: str_requestingUserId }).eq('admin_id', obj_orphanProfile.id);
+                        await supabase.from('clientes').update({ admin_id: str_requestingUserId }).eq('admin_id', obj_orphanProfile.id);
+                        await supabase.from('usuarios').update({ admin_padre_id: str_requestingUserId }).eq('admin_padre_id', obj_orphanProfile.id);
+                        await supabase.from('creditos').update({ creado_por_id: str_requestingUserId }).eq('creado_por_id', obj_orphanProfile.id);
+                        await supabase.from('pagos').update({ registrado_por_id: str_requestingUserId }).eq('registrado_por_id', obj_orphanProfile.id);
 
                         // 4. Update the User Record ID
-                        const { error: updateError } = await supabase
+                        const { error: obj_updateError } = await supabase
                             .from('usuarios')
-                            .update({ id: requestingUserId, updated_at: new Date() })
-                            .eq('id', orphanProfile.id);
+                            .update({ id: str_requestingUserId, updated_at: new Date() })
+                            .eq('id', obj_orphanProfile.id);
 
-                        if (!updateError) {
+                        if (!obj_updateError) {
                             console.log('[FIX] Profile migrated successfully!');
-                            requesterData = { ...orphanProfile, id: requestingUserId };
-                            requesterError = null;
+                            obj_requesterData = { ...obj_orphanProfile, id: str_requestingUserId };
+                            obj_requesterError = null;
                         } else {
-                            console.error('[FIX] Failed to update profile ID:', updateError);
+                            console.error('[FIX] Failed to update profile ID:', obj_updateError);
                         }
                     } else {
-                        // No orphan profile found. Create brand new one (Lazy Sync).
+                        // No orphan profile found. Create brand new one
                         console.log('[FIX] No orphan profile found. Creating new user record...');
-                        const { data: newUser, error: insertError } = await supabase
+                        const { data: obj_newUser, error: obj_insertError } = await supabase
                             .from('usuarios')
                             .insert([{
-                                id: requestingUserId,
-                                email: authUser.email,
-                                nombre: authUser.user_metadata?.nombre || 'Usuario Recuperado',
+                                id: str_requestingUserId,
+                                email: obj_authUser.email,
+                                nombre: obj_authUser.user_metadata?.nombre || 'Usuario Recuperado',
                                 rol: 'admin',
                                 estado: 'activo'
                             }])
                             .select('rol')
                             .single();
 
-                        if (!insertError) {
-                            requesterData = newUser;
-                            requesterError = null;
+                        if (!obj_insertError) {
+                            obj_requesterData = obj_newUser;
+                            obj_requesterError = null;
                         }
                     }
                 }
@@ -239,100 +242,95 @@ export const deleteUser = async (req, res) => {
             }
         }
 
-        if (requesterError || !requesterData) {
-            return res.status(403).json({ error: `No autorizado. Usuario solicitante no encontrado. ID: ${requestingUserId}` });
+        if (obj_requesterError || !obj_requesterData) {
+            return res.status(403).json({ error: `No autorizado. Usuario solicitante no encontrado. ID: ${str_requestingUserId}` });
         }
 
-        const requesterRole = requesterData.rol;
+        const str_requesterRole = obj_requesterData.rol;
 
         // 2. Identify Target User (Hierarchy Check)
-        const { data: targetUser, error: targetError } = await supabase
+        const { data: obj_targetUser, error: obj_targetError } = await supabase
             .from('usuarios')
             .select('rol, admin_padre_id, auth_id')
-            .eq('id', id)
+            .eq('id', str_id)
             .single();
 
-        if (targetError || !targetUser) {
+        if (obj_targetError || !obj_targetUser) {
             return res.status(404).json({ error: 'Usuario a eliminar no encontrado.' });
         }
 
         // 3. Authorization Logic
-        let isAuthorized = false;
+        let bol_isAuthorized = false;
 
-        if (requesterRole === 'super_admin') {
-            isAuthorized = true; // Super Admin can delete anyone (subject to integrity checks)
-        } else if (requesterRole === 'admin') {
+        if (str_requesterRole === 'super_admin') {
+            bol_isAuthorized = true; // Super Admin can delete anyone
+        } else if (str_requesterRole === 'admin') {
             // Admin can only delete THEIR Encargados
-            if (targetUser.rol === 'encargado' && targetUser.admin_padre_id === requestingUserId) {
-                isAuthorized = true;
+            if (obj_targetUser.rol === 'encargado' && obj_targetUser.admin_padre_id === str_requestingUserId) {
+                bol_isAuthorized = true;
             }
         }
 
-        if (!isAuthorized) {
+        if (!bol_isAuthorized) {
             return res.status(403).json({ error: 'No autorizado para eliminar este usuario.' });
         }
 
         // 4. Integrity Validations
 
         // A. If target is ADMIN (or Super Admin)
-        if (targetUser.rol === 'admin' || targetUser.rol === 'super_admin') {
+        if (obj_targetUser.rol === 'admin' || obj_targetUser.rol === 'super_admin') {
             // Check Associated Clients
-            const { count: clientesCount } = await supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('admin_id', id);
-            if (clientesCount > 0) return res.status(400).json({ error: `No se puede eliminar: El usuario tiene ${clientesCount} clientes asociados.` });
+            const { count: int_clientesCount } = await supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('admin_id', str_id);
+            if (int_clientesCount > 0) return res.status(400).json({ error: `No se puede eliminar: El usuario tiene ${int_clientesCount} clientes asociados.` });
 
             // Check Active Wallets (Carteras)
-            const { count: carterasCount } = await supabase.from('carteras').select('*', { count: 'exact', head: true }).eq('admin_id', id);
-            if (carterasCount > 0) return res.status(400).json({ error: `No se puede eliminar: El usuario tiene ${carterasCount} carteras activas.` });
+            const { count: int_carterasCount } = await supabase.from('carteras').select('*', { count: 'exact', head: true }).eq('admin_id', str_id);
+            if (int_carterasCount > 0) return res.status(400).json({ error: `No se puede eliminar: El usuario tiene ${int_carterasCount} carteras activas.` });
 
             // Check Dependent Encargados
-            const { count: encargadosCount } = await supabase.from('usuarios').select('*', { count: 'exact', head: true }).eq('admin_padre_id', id);
-            if (encargadosCount > 0) return res.status(400).json({ error: `No se puede eliminar: El usuario tiene ${encargadosCount} encargados bajo su supervisión.` });
+            const { count: int_encargadosCount } = await supabase.from('usuarios').select('*', { count: 'exact', head: true }).eq('admin_padre_id', str_id);
+            if (int_encargadosCount > 0) return res.status(400).json({ error: `No se puede eliminar: El usuario tiene ${int_encargadosCount} encargados bajo su supervisión.` });
         }
 
         // B. If target is ENCARGADO
-        if (targetUser.rol === 'encargado') {
+        if (obj_targetUser.rol === 'encargado') {
             // Check Created Loans
-            const { count: creditosCount } = await supabase.from('creditos').select('*', { count: 'exact', head: true }).eq('creado_por_id', id);
-            if (creditosCount > 0) return res.status(400).json({ error: `No se puede eliminar: El encargado ha procesado ${creditosCount} créditos.` });
+            const { count: int_creditosCount } = await supabase.from('creditos').select('*', { count: 'exact', head: true }).eq('creado_por_id', str_id);
+            if (int_creditosCount > 0) return res.status(400).json({ error: `No se puede eliminar: El encargado ha procesado ${int_creditosCount} créditos.` });
 
             // Check Registered Payments
-            const { count: pagosCount } = await supabase.from('pagos').select('*', { count: 'exact', head: true }).eq('registrado_por_id', id);
-            if (pagosCount > 0) return res.status(400).json({ error: `No se puede eliminar: El encargado ha registrado ${pagosCount} pagos.` });
+            const { count: int_pagosCount } = await supabase.from('pagos').select('*', { count: 'exact', head: true }).eq('registrado_por_id', str_id);
+            if (int_pagosCount > 0) return res.status(400).json({ error: `No se puede eliminar: El encargado ha registrado ${int_pagosCount} pagos.` });
 
             // Check Portfolio Assignments
-            const { count: asignacionesCount } = await supabase.from('cartera_encargados').select('*', { count: 'exact', head: true }).eq('encargado_id', id);
-            if (asignacionesCount > 0) return res.status(400).json({ error: `No se puede eliminar: El encargado tiene ${asignacionesCount} asignaciones de cartera activas. Retírelas primero.` });
+            const { count: int_asignacionesCount } = await supabase.from('cartera_encargados').select('*', { count: 'exact', head: true }).eq('encargado_id', str_id);
+            if (int_asignacionesCount > 0) return res.status(400).json({ error: `No se puede eliminar: El encargado tiene ${int_asignacionesCount} asignaciones de cartera activas. Retírelas primero.` });
         }
 
-        // 5. Execute Delete
         // 5. Execute Delete from Public DB
-        const { error: deleteError } = await supabase
+        const { error: obj_deleteError } = await supabase
             .from('usuarios')
             .delete()
-            .eq('id', id);
+            .eq('id', str_id);
 
-        if (deleteError) throw deleteError;
+        if (obj_deleteError) throw obj_deleteError;
 
         // 6. Delete from Auth (Supabase Auth)
-        // Use auth_id if available (linked account), otherwise try PK id
-        const authIdToDelete = targetUser.auth_id || id;
+        const str_authIdToDelete = obj_targetUser.auth_id || str_id;
 
-        if (authIdToDelete) {
-            const { error: authDeleteError } = await supabase.auth.admin.deleteUser(authIdToDelete);
-            if (authDeleteError) {
-                console.warn(`Usuario eliminado de DB pública pero falló borrado en Auth (ID: ${authIdToDelete}):`, authDeleteError.message);
+        if (str_authIdToDelete) {
+            const { error: obj_authDeleteError } = await supabase.auth.admin.deleteUser(str_authIdToDelete);
+            if (obj_authDeleteError) {
+                console.warn(`Usuario eliminado de DB pública pero falló borrado en Auth (ID: ${str_authIdToDelete}):`, obj_authDeleteError.message);
             } else {
-                console.log(`Usuario eliminado correctamente de Auth (ID: ${authIdToDelete})`);
+                console.log(`Usuario eliminado correctamente de Auth (ID: ${str_authIdToDelete})`);
             }
         }
 
         res.json({ success: true, message: 'Usuario eliminado correctamente del sistema.' });
 
-        // ... existing code
-
     } catch (error) {
-        console.error('Error deleting user:', error);
-        res.status(500).json({ error: error.message });
+        errorHandler(res, error, 'deleteUser');
     }
 };
 
@@ -341,71 +339,72 @@ export const deleteUser = async (req, res) => {
  */
 export const renewUserSubscription = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { tipo_plan, monto, dias_duracion } = req.body;
-        const registeredBy = req.user.id; // From authMiddleware
+        const { id: str_id } = req.params;
+        const { tipo_plan: str_tipoPlan, monto: dbl_monto, dias_duracion: int_diasDuracion } = req.body;
+        const str_registeredBy = req.user.id; // From authMiddleware
 
-        if (!tipo_plan || !monto || !dias_duracion) {
+        if (!str_tipoPlan || !dbl_monto || !int_diasDuracion) {
             return res.status(400).json({ error: 'Faltan datos de renovación (monto, plan, dias)' });
         }
 
-        const result = await subscriptionService.renewSubscription(id, { tipo_plan, monto, dias_duracion }, registeredBy);
-        res.json({ success: true, data: result, message: 'Suscripción renovada exitosamente' });
+        const obj_result = await subscriptionService.renewSubscription(
+            str_id, 
+            { tipo_plan: str_tipoPlan, monto: dbl_monto, dias_duracion: int_diasDuracion }, 
+            str_registeredBy
+        );
+        
+        res.json({ success: true, data: obj_result, message: 'Suscripción renovada exitosamente' });
 
     } catch (error) {
-        console.error('Error renewing subscription:', error);
-        res.status(500).json({ error: error.message });
+        errorHandler(res, error, 'renewUserSubscription');
     }
 };
 
 /**
  * Reset completo del sistema.
- * Borra todas las tablas transaccionales y usuarios (excecto el Super Admin)
- * desde la BD pública (vía RPC) y también de Supabase Auth (vía service_role).
- * Solo puede ser invocado por un Super Admin autenticado.
  */
 export const resetCompleto = async (req, res) => {
     try {
         const str_requestingId = req.user.id;
 
         // 1. Verificar que el solicitante es Super Admin
-        const { data: requesterData, error: reqError } = await supabase
+        const { data: obj_requesterData, error: obj_reqError } = await supabase
             .from('usuarios')
             .select('rol, id')
             .eq('auth_id', str_requestingId)
             .maybeSingle();
 
-        if (reqError || requesterData?.rol !== 'super_admin') {
+        if (obj_reqError || obj_requesterData?.rol !== 'super_admin') {
             return res.status(403).json({ error: 'No autorizado. Solo el Super Admin puede resetear el sistema.' });
         }
 
         const str_superAdminAuthId = str_requestingId;
 
-        // 2. Ejecutar el reset de tablas en BD pública (RPC maneja el borrado de usuarios y datos)
-        const { data: rpcResult, error: rpcError } = await supabase
+        // 2. Ejecutar el reset de tablas en BD pública
+        const { data: obj_rpcResult, error: obj_rpcError } = await supabase
             .rpc('reset_sistema_completo');
 
-        if (rpcError) throw rpcError;
-        if (rpcResult && !rpcResult.success) throw new Error(rpcResult.message);
+        if (obj_rpcError) throw obj_rpcError;
+        if (obj_rpcResult && !obj_rpcResult.success) throw new Error(obj_rpcResult.message);
 
-        console.log('[RESET] BD pública reseteada:', rpcResult?.message);
+        console.log('[RESET] BD pública reseteada:', obj_rpcResult?.message);
 
         // 3. Listar todos los usuarios de Supabase Auth
-        const { data: { users: authUsers }, error: listError } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+        const { data: { users: arr_authUsers }, error: obj_listError } = await supabase.auth.admin.listUsers({ perPage: 1000 });
 
-        if (listError) {
-            console.warn('[RESET] No se pudo listar auth.users:', listError.message);
+        if (obj_listError) {
+            console.warn('[RESET] No se pudo listar auth.users:', obj_listError.message);
         } else {
             // 4. Borrar de Auth a todos excepto el Super Admin
             let int_borrados = 0;
             let int_errores = 0;
 
-            for (const authUser of authUsers) {
-                if (authUser.id === str_superAdminAuthId) continue; // Preservar Super Admin
+            for (const obj_authUser of arr_authUsers) {
+                if (obj_authUser.id === str_superAdminAuthId) continue;
 
-                const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(authUser.id);
-                if (deleteAuthError) {
-                    console.warn(`[RESET] Error borrando auth user ${authUser.email}:`, deleteAuthError.message);
+                const { error: obj_deleteAuthError } = await supabase.auth.admin.deleteUser(obj_authUser.id);
+                if (obj_deleteAuthError) {
+                    console.warn(`[RESET] Error borrando auth user ${obj_authUser.email}:`, obj_deleteAuthError.message);
                     int_errores++;
                 } else {
                     int_borrados++;
@@ -421,7 +420,6 @@ export const resetCompleto = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('[RESET] Error en resetCompleto:', error);
-        return res.status(500).json({ error: error.message || 'Error interno al resetear el sistema.' });
+        errorHandler(res, error, 'resetCompleto');
     }
 };

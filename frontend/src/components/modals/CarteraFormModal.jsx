@@ -84,7 +84,11 @@ const CarteraFormModal = ({ open, onClose, onSubmit, mode = 'create', initialDat
     };
 
     const handleChange = (field) => (e) => {
-        setFormData({ ...formData, [field]: e.target.value });
+        let value = e.target.value;
+        if (field === 'nombre' && value.length > 0) {
+            value = value.charAt(0).toUpperCase() + value.slice(1);
+        }
+        setFormData({ ...formData, [field]: value });
         if (errors[field]) setErrors({ ...errors, [field]: null });
     };
 
@@ -150,7 +154,7 @@ const CarteraFormModal = ({ open, onClose, onSubmit, mode = 'create', initialDat
             PaperProps={{ sx: { borderRadius: '16px' } }}
         >
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3 }}>
-                <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="h6" component="div" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <AccountBalanceWalletIcon color="primary" />
                     {mode === 'create' ? 'Nueva Cartera' : 'Editar Cartera'}
                 </Typography>
@@ -181,9 +185,14 @@ const CarteraFormModal = ({ open, onClose, onSubmit, mode = 'create', initialDat
                                 label="Monto Inicial (Capital)"
                                 fullWidth
                                 required
-                                type="number"
-                                value={formData.monto_inicial}
-                                onChange={handleChange('monto_inicial')}
+                                type="text"
+                                inputMode="numeric"
+                                value={formData.monto_inicial ? new Intl.NumberFormat('es-CO').format(formData.monto_inicial) : ''}
+                                onChange={(e) => {
+                                    const rawValue = e.target.value.replace(/\D/g, '');
+                                    setFormData({ ...formData, monto_inicial: rawValue });
+                                    if (errors.monto_inicial) setErrors({ ...errors, monto_inicial: null });
+                                }}
                                 error={!!errors.monto_inicial}
                                 helperText={errors.monto_inicial}
                                 InputProps={{

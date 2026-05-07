@@ -171,7 +171,7 @@ const ClienteFormModal = ({ open, onClose, onSubmit, onLinkExisting, mode = 'cre
         if (!formData.apellido.trim()) newErrors.apellido = 'Requerido';
         if (!formData.cedula.trim()) newErrors.cedula = 'Requerido';
         if (!formData.movil.trim()) newErrors.movil = 'Requerido';
-        if (!formData.email.trim()) newErrors.email = 'Email es obligatorio';
+
 
         // Validate email format if provided
         if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -220,7 +220,7 @@ const ClienteFormModal = ({ open, onClose, onSubmit, onLinkExisting, mode = 'cre
             PaperProps={{ sx: { borderRadius: '16px' } }}
         >
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3 }}>
-                <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="h6" component="div" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <PersonIcon color="primary" />
                     {mode === 'create' ? 'Nuevo Cliente' : 'Editar Cliente'}
                 </Typography>
@@ -353,9 +353,8 @@ const ClienteFormModal = ({ open, onClose, onSubmit, onLinkExisting, mode = 'cre
                     </Grid>
                     <Grid item xs={12} sm={6}>
                         <TextField
-                            label="Email"
+                            label="Email (Opcional)"
                             fullWidth
-                            required
                             value={formData.email}
                             onChange={handleChange('email')}
                             error={!!errors.email}

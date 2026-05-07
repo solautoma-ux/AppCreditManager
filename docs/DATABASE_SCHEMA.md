@@ -112,6 +112,14 @@
 - **Constraint**: Only allowed if the credit has NO payments recorded.
 - **Logic**: Shifts all payment dates based on the new start date and the defined payment frequency.
 
+### `refinanciar_credito`
+- **Description**: Atomic transaction to close an existing loan and create a new one with consolidated debt (capital + interest).
+- **Rules**:
+  - Marks the original credit as 'refinanciado' and sets its balances to 0.
+  - Recognizes the **pending interest of the original loan** as an income inflow to the wallet (capitalization).
+  - Deducts the new loan principal from the wallet's `saldo_actual`.
+  - Creates the new credit record and its full amortization schedule in a single transaction.
+
 ---
 
 ## Constraints & Business Rules

@@ -26,9 +26,11 @@ import {
 import CreditoFormModal from '../components/modals/CreditoFormModal';
 import PagoFormModal from '../components/modals/PagoFormModal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import CreditoCardBase from '../components/common/CreditoCardBase';
 import { creditoService } from '../services/creditoService';
 import { whatsappService } from '../services/whatsappService';
 import { useAuth } from '../context/AuthContext';
+import { useCreditoActions } from '../hooks/useCreditoActions';
 import { useToast } from '../context/ToastContext';
 
 const CreditoCard = ({ credito, onPay, onClick, onDelete, onLiquidate, onRefinance, onWhatsApp }) => {
@@ -92,7 +94,7 @@ const CreditoCard = ({ credito, onPay, onClick, onDelete, onLiquidate, onRefinan
                         {credito.cliente?.nombre} {credito.cliente?.apellido}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                        {credito.codigo} • {credito.cartera?.nombre}
+                        {credito.cartera?.nombre}
                     </Typography>
                 </Box>
                 <Chip
@@ -104,14 +106,20 @@ const CreditoCard = ({ credito, onPay, onClick, onDelete, onLiquidate, onRefinan
                 />
             </Box>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={6}>
-                    <Typography variant="caption" color="text.secondary">Deuda Total</Typography>
-                    <Typography variant="body1" fontWeight="bold">{formatCurrency(credito.monto_total)}</Typography>
+            <Grid container spacing={1} sx={{ mb: 2 }}>
+                <Grid item xs={4}>
+                    <Typography variant="caption" color="text.secondary" display="block">Deuda Total</Typography>
+                    <Typography variant="body2" fontWeight="bold">{formatCurrency(credito.monto_total)}</Typography>
                 </Grid>
-                <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                    <Typography variant="caption" color="text.secondary">Pendiente</Typography>
-                    <Typography variant="body1" fontWeight="bold" color={isTerminado ? 'success.main' : 'error.main'}>
+                <Grid item xs={4} sx={{ textAlign: 'center' }}>
+                    <Typography variant="caption" color="text.secondary" display="block">Pagado</Typography>
+                    <Typography variant="body2" fontWeight="bold" color="success.main">
+                        {formatCurrency(totalPagado)}
+                    </Typography>
+                </Grid>
+                <Grid item xs={4} sx={{ textAlign: 'right' }}>
+                    <Typography variant="caption" color="text.secondary" display="block">Pendiente</Typography>
+                    <Typography variant="body2" fontWeight="bold" color={isTerminado ? 'success.main' : 'error.main'}>
                         {formatCurrency(saldoPendiente)}
                     </Typography>
                 </Grid>
@@ -130,7 +138,7 @@ const CreditoCard = ({ credito, onPay, onClick, onDelete, onLiquidate, onRefinan
                 />
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <Box sx={{
                     display: 'flex',
                     gap: 1,
@@ -139,103 +147,76 @@ const CreditoCard = ({ credito, onPay, onClick, onDelete, onLiquidate, onRefinan
                     fontSize: '0.85rem',
                     bgcolor: 'background.default',
                     p: 1,
-                    borderRadius: 2,
-                    flexGrow: 1
+                    borderRadius: 2
                 }}>
                     <CalendarTodayIcon fontSize="small" />
                     <span>Prox: {formatDate(credito.fecha_proximo_pago)}</span>
                 </Box>
 
-                {!isTerminado && (
-                    <Tooltip title="Registrar Pago (Cobrar)">
-                        <IconButton
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {!isTerminado && (
+                        <Button
                             size="small"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onPay(credito);
-                            }}
+                            variant="outlined"
+                            color="success"
+                            startIcon={<AttachMoneyIcon />}
+                            onClick={(e) => { e.stopPropagation(); onPay(credito); }}
+                            sx={{ borderRadius: '8px', textTransform: 'none', flexGrow: 1 }}
+                        >
+                            Cobrar
+                        </Button>
+                    )}
+                    {!isTerminado && credito.cliente?.movil && (
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<WhatsAppIcon />}
+                            onClick={(e) => { e.stopPropagation(); onWhatsApp(credito); }}
                             sx={{
-                                color: 'success.main',
-                                bgcolor: 'success.lighter',
-                                border: '1px solid',
-                                borderColor: 'success.light',
-                                '&:hover': { bgcolor: 'success.light', color: 'success.contrastText' }
+                                color: '#25D366', borderColor: '#25D366', borderRadius: '8px', textTransform: 'none', flexGrow: 1,
+                                '&:hover': { bgcolor: 'rgba(37, 211, 102, 0.1)', borderColor: '#25D366' }
                             }}
                         >
-                            <AttachMoneyIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                )}
-                {/* WhatsApp button: Send payment reminder with configured message */}
-                {!isTerminado && credito.cliente?.movil && (
-                    <Tooltip title="Enviar recordatorio de pago por WhatsApp">
-                        <IconButton
+                            Notificar
+                        </Button>
+                    )}
+                    {!isTerminado && (
+                        <Button
                             size="small"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onWhatsApp(credito);
-                            }}
-                            sx={{
-                                color: '#25D366',
-                                bgcolor: 'rgba(37, 211, 102, 0.1)',
-                                border: '1px solid',
-                                borderColor: 'rgba(37, 211, 102, 0.3)',
-                                '&:hover': { bgcolor: 'rgba(37, 211, 102, 0.2)' }
-                            }}
+                            variant="outlined"
+                            color="info"
+                            startIcon={<AutorenewIcon />}
+                            onClick={(e) => { e.stopPropagation(); onRefinance(credito); }}
+                            sx={{ borderRadius: '8px', textTransform: 'none', flexGrow: 1 }}
                         >
-                            <WhatsAppIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                )}
-                {!isTerminado && (
-                    <Tooltip title="Interrumpir préstamo (cerrar como perdido)">
-                        <IconButton
+                            Refinanciar
+                        </Button>
+                    )}
+                    {!isTerminado && (
+                        <Button
                             size="small"
+                            variant="outlined"
                             color="primary"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onLiquidate(credito);
-                            }}
+                            startIcon={<CheckCircleIcon />}
+                            onClick={(e) => { e.stopPropagation(); onLiquidate(credito); }}
+                            sx={{ borderRadius: '8px', textTransform: 'none', flexGrow: 1 }}
                         >
-                            <CheckCircleIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                )}
-                {!isTerminado && (
-                    <Tooltip title="Refinanciar préstamo">
-                        <IconButton
+                            Interrumpir
+                        </Button>
+                    )}
+                    {credito.estado === 'activo' && totalPagado === 0 && (
+                        <Button
                             size="small"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onRefinance(credito);
-                            }}
-                            sx={{
-                                color: 'info.main',
-                                bgcolor: 'info.lighter',
-                                border: '1px solid',
-                                borderColor: 'info.light',
-                                '&:hover': { bgcolor: 'info.light', color: 'info.contrastText' }
-                            }}
-                        >
-                            <AutorenewIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                )}
-                {/* Delete button: Only show if active AND no payments (totalPagado === 0) */}
-                {credito.estado === 'activo' && totalPagado === 0 && (
-                    <Tooltip title="Eliminar préstamo">
-                        <IconButton
-                            size="small"
+                            variant="outlined"
                             color="error"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete(credito);
-                            }}
+                            startIcon={<DeleteIcon />}
+                            onClick={(e) => { e.stopPropagation(); onDelete(credito); }}
+                            sx={{ borderRadius: '8px', textTransform: 'none', flexGrow: 1 }}
                         >
-                            <DeleteIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                )}
+                            Borrar
+                        </Button>
+                    )}
+                </Box>
             </Box>
         </Paper>
     );
@@ -262,10 +243,6 @@ const Creditos = () => {
     const [viewMode, setViewMode] = useState('card'); // 'card' | 'list'
     const [sortDirection, setSortDirection] = useState('asc'); // 'asc' | 'desc'
 
-    // Confirmation dialogs state
-    const [deleteDialog, setDeleteDialog] = useState({ open: false, credito: null, loading: false });
-    const [liquidateDialog, setLiquidateDialog] = useState({ open: false, credito: null, loading: false });
-
     const fetchCreditos = async () => {
         setLoading(true);
         try {
@@ -278,6 +255,17 @@ const Creditos = () => {
             setLoading(false);
         }
     };
+
+    const {
+        obj_deleteDialog,
+        obj_liquidateDialog,
+        handleDeleteClick,
+        handleDeleteConfirm,
+        closeDeleteDialog,
+        handleLiquidateClick,
+        handleLiquidateConfirm,
+        closeLiquidateDialog
+    } = useCreditoActions(fetchCreditos);
 
     useEffect(() => {
         fetchCreditos();
@@ -298,62 +286,6 @@ const Creditos = () => {
     const handleRefinance = (credito) => {
         setSelectedCredito(credito);
         setModalOpen(true);
-    };
-
-    /**
-     * Opens delete confirmation dialog.
-     */
-    const handleDeleteClick = (credito) => {
-        setDeleteDialog({ open: true, credito, loading: false });
-    };
-
-    /**
-     * Confirms and executes delete action.
-     */
-    const handleDeleteConfirm = async () => {
-        if (!deleteDialog.credito) return;
-        setDeleteDialog(prev => ({ ...prev, loading: true }));
-        try {
-            const result = await creditoService.deleteCreditoSeguro(deleteDialog.credito.id);
-            if (result.success) {
-                showToast(result.message, 'success');
-                fetchCreditos();
-            } else {
-                showToast(result.message, 'warning');
-            }
-        } catch (err) {
-            showToast('Error al eliminar: ' + err.message, 'error');
-        } finally {
-            setDeleteDialog({ open: false, credito: null, loading: false });
-        }
-    };
-
-    /**
-     * Opens liquidate confirmation dialog.
-     */
-    const handleLiquidateClick = (credito) => {
-        setLiquidateDialog({ open: true, credito, loading: false });
-    };
-
-    /**
-     * Confirms and executes forced credit liquidation.
-     */
-    const handleLiquidateConfirm = async () => {
-        if (!liquidateDialog.credito) return;
-        setLiquidateDialog(prev => ({ ...prev, loading: true }));
-        try {
-            const result = await creditoService.liquidarCreditoForzado(liquidateDialog.credito.id);
-            if (result.success) {
-                showToast(result.message, 'success');
-                fetchCreditos();
-            } else {
-                showToast(result.message, 'warning');
-            }
-        } catch (err) {
-            showToast('Error al liquidar: ' + err.message, 'error');
-        } finally {
-            setLiquidateDialog({ open: false, credito: null, loading: false });
-        }
     };
 
     /**
@@ -750,7 +682,7 @@ const Creditos = () => {
                         /* Flat List CARD (Original) */
                         <Grid container spacing={2}>
                             {sortedFiltered.map(credito => (
-                                <Grid item xs={12} sm={6} md={4} key={credito.id}>
+                                <Grid item xs={12} md={6} key={credito.id}>
                                     <CreditoCard
                                         credito={credito}
                                         onPay={handlePay}
@@ -772,7 +704,7 @@ const Creditos = () => {
                                 </Typography>
                                 <Grid container spacing={2}>
                                     {groupedCreditos[key].map(credito => (
-                                        <Grid item xs={12} sm={6} md={4} key={credito.id}>
+                                        <Grid item xs={12} md={6} key={credito.id}>
                                             <CreditoCard
                                                 credito={credito}
                                                 onPay={handlePay}
@@ -808,26 +740,26 @@ const Creditos = () => {
 
             {/* Delete Confirmation Dialog */}
             <ConfirmDialog
-                open={deleteDialog.open}
-                onClose={() => setDeleteDialog({ open: false, credito: null, loading: false })}
+                open={obj_deleteDialog.open}
+                onClose={closeDeleteDialog}
                 onConfirm={handleDeleteConfirm}
                 title="Eliminar Préstamo"
-                message={`¿Está seguro que desea ELIMINAR permanentemente el préstamo "${deleteDialog.credito?.codigo}"? El capital prestado se devolverá a la cartera.`}
+                message={`¿Está seguro que desea ELIMINAR permanentemente el préstamo "${obj_deleteDialog.credito?.codigo}"? El capital prestado se devolverá a la cartera.`}
                 confirmText="Eliminar"
                 severity="error"
-                loading={deleteDialog.loading}
+                loading={obj_deleteDialog.loading}
             />
 
             {/* Interrupt Confirmation Dialog */}
             <ConfirmDialog
-                open={liquidateDialog.open}
-                onClose={() => setLiquidateDialog({ open: false, credito: null, loading: false })}
+                open={obj_liquidateDialog.open}
+                onClose={closeLiquidateDialog}
                 onConfirm={handleLiquidateConfirm}
                 title="Interrumpir Préstamo"
-                message={`¿Está seguro que desea INTERRUMPIR el préstamo "${liquidateDialog.credito?.codigo}"? El cliente no pagará la deuda pendiente. El capital restante se considerará como PERDIDO.`}
+                message={`¿Está seguro que desea INTERRUMPIR el préstamo "${obj_liquidateDialog.credito?.codigo}"? El cliente no pagará la deuda pendiente. El capital restante se considerará como PERDIDO.`}
                 confirmText="Interrumpir"
                 severity="warning"
-                loading={liquidateDialog.loading}
+                loading={obj_liquidateDialog.loading}
             />
         </Box>
     );

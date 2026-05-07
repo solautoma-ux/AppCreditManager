@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Box, Typography, Paper, Tab, Tabs,
     IconButton, Tooltip, Chip, CircularProgress, Alert,
-    Fab, useTheme
+    Fab, useTheme, Grid, Button, LinearProgress
 } from '@mui/material';
 import {
     AttachMoney as MoneyIcon,
@@ -11,7 +11,10 @@ import {
     Payment as PaymentIcon,
     Today as TodayIcon,
     Warning as WarningIcon,
-    ErrorRounded as ErrorIcon
+    ErrorRounded as ErrorIcon,
+    DeleteOutlineRounded as DeleteIcon,
+    CheckCircleOutlineRounded as CheckCircleIcon,
+    AutorenewRounded as AutorenewIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +23,11 @@ import { homeService } from '../services/homeService';
 import PagoFormModal from '../components/modals/PagoFormModal';
 import CreditoFormModal from '../components/modals/CreditoFormModal';
 import BuscadorPagoModal from '../components/modals/BuscadorPagoModal';
+import ConfirmDialog from '../components/common/ConfirmDialog';
+import CreditoCardBase from '../components/common/CreditoCardBase';
+import { creditoService } from '../services/creditoService';
+import { calculateDaysOverdue } from '../utils/mathUtils';
+import { useCreditoActions } from '../hooks/useCreditoActions';
 
 const Home = () => {
     const { user } = useAuth();
@@ -43,6 +51,52 @@ const Home = () => {
     const [buscadorModalOpen, setBuscadorModalOpen] = useState(false);
     const [creditoModalOpen, setCreditoModalOpen] = useState(false);
     const [selectedCredito, setSelectedCredito] = useState(null);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            // Get the same date calculation as the service for display
+            const now = new Date();
+            const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000))
+                .toISOString().split('T')[0];
+            setDebugDate(localDate);
+
+            const [today, overdue, vencidos] = await Promise.all([
+                homeService.getTodayPayments(user.id, user.rol),
+                homeService.getOverduePayments(user.id, user.rol),
+                homeService.getVencidoInstallments(user.id, user.rol)
+            ]);
+
+            setTodayPaymentsGrouped(groupAndSortPayments(today));
+            setOverduePaymentsGrouped(groupAndSortPayments(overdue));
+            setVencidoPaymentsGrouped(groupAndSortPayments(vencidos));
+
+            // Still keep raw totals for the tabs
+            setTodayPayments(today);
+            setOverduePayments(overdue);
+            setVencidoPayments(vencidos);
+        } catch (err) {
+            console.error(err);
+            setError(err.message || 'Error desconocido al cargar datos.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (user) fetchData();
+    }, [user]);
+
+    const {
+        obj_deleteDialog,
+        obj_liquidateDialog,
+        handleDeleteClick,
+        handleDeleteConfirm,
+        closeDeleteDialog,
+        handleLiquidateClick,
+        handleLiquidateConfirm,
+        closeLiquidateDialog
+    } = useCreditoActions(fetchData);
 
     const groupAndSortPayments = (payments) => {
         if (!payments || payments.length === 0) return [];
@@ -78,40 +132,7 @@ const Home = () => {
         return sortedGroups;
     };
 
-    useEffect(() => {
-        if (user) fetchData();
-    }, [user]);
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            // Get the same date calculation as the service for display
-            const now = new Date();
-            const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000))
-                .toISOString().split('T')[0];
-            setDebugDate(localDate);
-
-            const [today, overdue, vencidos] = await Promise.all([
-                homeService.getTodayPayments(user.id, user.rol),
-                homeService.getOverduePayments(user.id, user.rol),
-                homeService.getVencidoInstallments(user.id, user.rol)
-            ]);
-
-            setTodayPaymentsGrouped(groupAndSortPayments(today));
-            setOverduePaymentsGrouped(groupAndSortPayments(overdue));
-            setVencidoPaymentsGrouped(groupAndSortPayments(vencidos));
-
-            // Still keep raw totals for the tabs
-            setTodayPayments(today);
-            setOverduePayments(overdue);
-            setVencidoPayments(vencidos);
-        } catch (err) {
-            console.error(err);
-            setError(err.message || 'Error desconocido al cargar datos.');
-        } finally {
-            setLoading(false);
-        }
-    };
+    // fetchData and useEffect were hoisted to avoid ReferenceError
 
     const handleTabChange = (event, newValue) => {
         setTabValue(newValue);
@@ -156,103 +177,13 @@ const Home = () => {
 
     const formatCurrency = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val);
 
-    const calculateDaysOverdue = (dateStr) => {
-        if (!dateStr) return 0;
-        // Parse as local date explicitly to avoid UTC conversion issues
-        const [year, month, day] = dateStr.split('-').map(Number);
-        const due = new Date(year, month - 1, day); // Local 00:00:00
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Local 00:00:00
-
-        // Difference in milliseconds
-        const diffTime = today - due;
-
-        // Convert to days (floor to handle minor inconsistencies, though times are aligned)
-        // If today (27) > due (27) -> 0
-        // If today (27) > due (26) -> 1
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
-    };
-
-    const ClientGroup = ({ group, isOverdue = false }) => {
-        return (
-            <Paper sx={{ p: 2, mb: 3, borderRadius: '16px', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>
-                    <Box>
-                        <Typography variant="h6" fontWeight="bold" color="primary">
-                            {group.cliente?.nombre} {group.cliente?.apellido}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            {group.cartera?.nombre} • {group.payments.length} {group.payments.length === 1 ? 'pago' : 'pagos'}
-                        </Typography>
-                    </Box>
-                    <Box sx={{ textAlign: 'right' }}>
-                        <Typography variant="subtitle2" fontWeight="bold">
-                            Total: {formatCurrency(group.payments.reduce((acc, p) => acc + p.monto_cuota, 0))}
-                        </Typography>
-                    </Box>
-                </Box>
-
-                <Box>
-                    {group.payments.map((item) => (
-                        <PaymentRow key={item.id} item={item} isOverdue={isOverdue} />
-                    ))}
-                </Box>
-            </Paper>
-        );
-    };
-
-    const PaymentRow = ({ item, isOverdue = false }) => {
-        const days = isOverdue ? calculateDaysOverdue(item.fecha_vencimiento) : 0;
-        const severity = days > 3 ? 'error' : days > 0 ? 'warning' : 'success';
-
-        return (
-            <Box sx={{ p: 1.5, mb: 1, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: '0.2s', bgcolor: 'action.hover', '&:hover': { bgcolor: 'action.selected' } }}>
-                <Box sx={{ flexGrow: 1 }}>
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <Typography variant="body2" fontWeight="bold">
-                            {formatCurrency(item.monto_cuota)}
-                        </Typography>
-                        <Typography variant="caption" sx={{ bgcolor: 'background.default', px: 1, borderRadius: 1, fontWeight: 'medium' }}>
-                            {new Date(item.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
-                        </Typography>
-                        <Chip
-                            label={`Cuota ${item.numero_cuota}`}
-                            size="small"
-                            variant="outlined"
-                            sx={{ height: 18, fontSize: '0.65rem' }}
-                        />
-                        {isOverdue && days > 0 && (
-                            <Chip
-                                label={`${days} días`}
-                                size="small"
-                                color={severity}
-                                sx={{ height: 18, fontSize: '0.65rem', fontWeight: 'bold' }}
-                            />
-                        )}
-                    </Box>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <Tooltip title="Pagar">
-                        <IconButton size="small" color="primary" onClick={() => handlePay(item)} sx={{ bgcolor: 'white', '&:hover': { bgcolor: 'primary.main', color: 'white' } }}>
-                            <PaymentIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="WhatsApp">
-                        <IconButton size="small" color="success" onClick={() => handleNotify(item)} sx={{ bgcolor: 'white', '&:hover': { bgcolor: 'success.main', color: 'white' } }}>
-                            <WhatsAppIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
-            </Box>
-        );
-    };
+    // El componente PaymentCard ha sido delegado a CreditoCardBase para cumplir el Principio DRY
 
     return (
         <Box sx={{ pb: 10 }}> {/* Padding bottom for FAB space */}
             <Box sx={{ mb: 3 }}>
-                <Typography variant="h4" fontWeight="bold">Hola, {user?.nombre || user?.email}</Typography>
-                <Typography variant="body1" color="text.secondary">Resumen de actividades para hoy</Typography>
+                <Typography variant="h4" fontWeight="bold">Gestión de hoy</Typography>
+                <Typography variant="body1" color="text.secondary">Hola, {user?.nombre || user?.email}</Typography>
             </Box>
 
             <Paper sx={{ borderRadius: '16px', mb: 3 }}>
@@ -298,15 +229,28 @@ const Home = () => {
                                 </Paper>
                             )}
 
-                            {todayPaymentsGrouped.length === 0 ? (
+                            {todayPayments.length === 0 ? (
                                 <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 4, bgcolor: 'background.paper' }}>
                                     <Typography variant="h6" color="text.secondary">🎉 ¡Todo al día!</Typography>
                                     <Typography variant="body2" color="text.secondary">No hay pagos a recibir el día de hoy.</Typography>
                                 </Paper>
                             ) : (
-                                todayPaymentsGrouped.map(group => (
-                                    <ClientGroup key={group.cliente?.id} group={group} />
-                                ))
+                                <Grid container spacing={2}>
+                                    {todayPayments.map(item => (
+                                        <Grid item xs={12} md={6} key={item.id}>
+                                            <CreditoCardBase
+                                                obj_credito={item.credito}
+                                                obj_paymentItem={item}
+                                                bol_isOverdue={false}
+                                                onPay={handlePay}
+                                                onNotify={handleNotify}
+                                                onRefinance={handleRefinance}
+                                                onLiquidate={handleLiquidateClick}
+                                                onDelete={handleDeleteClick}
+                                            />
+                                        </Grid>
+                                    ))}
+                                </Grid>
                             )}
                         </Box>
                     )}
@@ -338,15 +282,29 @@ const Home = () => {
                                 </Paper>
                             )}
 
-                            {overduePaymentsGrouped.length === 0 ? (
+                            {overduePayments.length === 0 ? (
                                 <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 4, bgcolor: 'background.paper' }}>
                                     <Typography variant="h6" color="text.secondary">✨ ¡Excelente!</Typography>
                                     <Typography variant="body2" color="text.secondary">No hay pagos pendientes de días anteriores.</Typography>
                                 </Paper>
                             ) : (
-                                overduePaymentsGrouped.map(group => (
-                                    <ClientGroup key={group.cliente?.id} group={group} isOverdue={true} />
-                                ))
+                                <Grid container spacing={2}>
+                                    {overduePayments.map(item => (
+                                        <Grid item xs={12} md={6} key={item.id}>
+                                            <CreditoCardBase
+                                                obj_credito={item.credito}
+                                                obj_paymentItem={item}
+                                                bol_isOverdue={true}
+                                                int_overdueDays={calculateDaysOverdue(item.fecha_vencimiento)}
+                                                onPay={handlePay}
+                                                onNotify={handleNotify}
+                                                onRefinance={handleRefinance}
+                                                onLiquidate={handleLiquidateClick}
+                                                onDelete={handleDeleteClick}
+                                            />
+                                        </Grid>
+                                    ))}
+                                </Grid>
                             )}
                         </Box>
                     )}
@@ -378,15 +336,29 @@ const Home = () => {
                                 </Paper>
                             )}
 
-                            {vencidoPaymentsGrouped.length === 0 ? (
+                            {vencidoPayments.length === 0 ? (
                                 <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 4, bgcolor: 'background.paper' }}>
                                     <Typography variant="h6" color="text.secondary">✅ Sin Cartera Vencida</Typography>
                                     <Typography variant="body2" color="text.secondary">No tienes créditos en estado 'Vencido'.</Typography>
                                 </Paper>
                             ) : (
-                                vencidoPaymentsGrouped.map(group => (
-                                    <ClientGroup key={group.cliente?.id} group={group} isOverdue={true} />
-                                ))
+                                <Grid container spacing={2}>
+                                    {vencidoPayments.map(item => (
+                                        <Grid item xs={12} md={6} key={item.id}>
+                                            <CreditoCardBase
+                                                obj_credito={item.credito}
+                                                obj_paymentItem={item}
+                                                bol_isOverdue={true}
+                                                int_overdueDays={calculateDaysOverdue(item.fecha_vencimiento)}
+                                                onPay={handlePay}
+                                                onNotify={handleNotify}
+                                                onRefinance={handleRefinance}
+                                                onLiquidate={handleLiquidateClick}
+                                                onDelete={handleDeleteClick}
+                                            />
+                                        </Grid>
+                                    ))}
+                                </Grid>
                             )}
                         </Box>
                     )}
@@ -441,6 +413,28 @@ const Home = () => {
                     fetchData(); // Refresh summary if needed (though loans don't affect payments instantly unless immediate quote)
                 }}
                 refinanceCredito={selectedCredito}
+            />
+
+            <ConfirmDialog
+                open={obj_deleteDialog.open}
+                title="Eliminar Préstamo"
+                content={`¿Estás seguro de eliminar el préstamo de ${obj_deleteDialog.credito?.cliente?.nombre}? Esta acción es irreversible.`}
+                onConfirm={handleDeleteConfirm}
+                onCancel={closeDeleteDialog}
+                loading={obj_deleteDialog.loading}
+                confirmText="Eliminar"
+                confirmColor="error"
+            />
+
+            <ConfirmDialog
+                open={obj_liquidateDialog.open}
+                title="Interrumpir Préstamo"
+                content="¿Estás seguro de marcar este préstamo como INTERRUMPIDO? Ya no generará cuotas y se considerará pérdida."
+                onConfirm={handleLiquidateConfirm}
+                onCancel={closeLiquidateDialog}
+                loading={obj_liquidateDialog.loading}
+                confirmText="Sí, Interrumpir"
+                confirmColor="primary"
             />
         </Box>
     );
