@@ -46,6 +46,20 @@ const PrivateRoute = ({ children }) => {
     return <Layout>{children}</Layout>;
 };
 
+/**
+ * Guardia de ruta exclusiva para Super Admin.
+ * Redirige a /home si el usuario no tiene el rol 'super_admin'.
+ */
+const SuperAdminRoute = ({ children }) => {
+    const { user } = useAuth();
+
+    if (user && user.rol !== 'super_admin') {
+        return <Navigate to="/home" replace />;
+    }
+
+    return children;
+};
+
 // Componente de Redirección Inteligente
 const RootRedirect = () => {
     const { user, loading } = useAuth();
@@ -95,7 +109,9 @@ function App() {
                                 path="/suscripciones"
                                 element={
                                     <PrivateRoute>
-                                        <Suscripciones />
+                                        <SuperAdminRoute>
+                                            <Suscripciones />
+                                        </SuperAdminRoute>
                                     </PrivateRoute>
                                 }
                             />

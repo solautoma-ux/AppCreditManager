@@ -3,6 +3,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Cliente con privilegios administrativos para ejecutar RPCs blindados
+const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
 export const pagoService = {
     registrarPago: async (str_userToken, obj_pagoData, str_registradoPorId) => {
         try {
@@ -19,7 +22,7 @@ export const pagoService = {
                 str_notas
             } = obj_pagoData;
 
-            const { data, error } = await supabaseUser.rpc('registrar_pago_completo', {
+            const { data, error } = await supabaseAdmin.rpc('registrar_pago_completo', {
                 p_credito_id: str_creditoId,
                 p_monto_total: parseFloat(dbl_montoTotal),
                 p_monto_a_capital: parseFloat(dbl_montoCapital),
@@ -47,7 +50,7 @@ export const pagoService = {
                 global: { headers: { Authorization: `Bearer ${str_userToken}` } }
             });
 
-            const { data, error } = await supabaseUser.rpc('reprogramar_fecha_inicio_credito', {
+            const { data, error } = await supabaseAdmin.rpc('reprogramar_fecha_inicio_credito', {
                 p_credito_id: str_creditoId,
                 p_nueva_fecha: date_nuevaFecha
             });
@@ -65,7 +68,7 @@ export const pagoService = {
                 global: { headers: { Authorization: `Bearer ${str_userToken}` } }
             });
 
-            const { data, error } = await supabaseUser.rpc('deshacer_pago', {
+            const { data, error } = await supabaseAdmin.rpc('deshacer_pago', {
                 p_pago_id: str_pagoId,
                 p_admin_id: str_adminId
             });
