@@ -34,6 +34,10 @@ const fetchApi = async (endpoint, options = {}) => {
 };
 
 export const carteraService = {
+    /**
+     * Obtiene la lista de todas las carteras disponibles para el usuario autenticado.
+     * @returns {Promise<Array>} Lista de carteras.
+     */
     getCarteras: async () => {
         try {
             return await fetchApi('/carteras');
@@ -43,6 +47,11 @@ export const carteraService = {
         }
     },
 
+    /**
+     * Crea una nueva cartera en el sistema.
+     * @param {Object} carteraData - Datos iniciales de la cartera (nombre, monto, etc).
+     * @returns {Promise<Object>} La cartera creada.
+     */
     createCartera: async (carteraData) => {
         try {
             return await fetchApi('/carteras', { method: 'POST', body: carteraData });
@@ -52,6 +61,12 @@ export const carteraService = {
         }
     },
 
+    /**
+     * Actualiza los datos básicos de una cartera existente.
+     * @param {string} id - UUID de la cartera.
+     * @param {Object} updates - Campos a actualizar.
+     * @returns {Promise<Object>} La cartera actualizada.
+     */
     updateCartera: async (id, updates) => {
         try {
             return await fetchApi(`/carteras/${id}`, { method: 'PUT', body: updates });
@@ -61,6 +76,11 @@ export const carteraService = {
         }
     },
 
+    /**
+     * Archiva una cartera (soft delete) previniendo nuevas operaciones.
+     * @param {string} carteraId - UUID de la cartera.
+     * @returns {Promise<Object>} Resultado de la operación.
+     */
     archivarCartera: async (carteraId) => {
         try {
             return await fetchApi(`/carteras/${carteraId}/archivar`, { method: 'POST' });
@@ -70,6 +90,11 @@ export const carteraService = {
         }
     },
 
+    /**
+     * Elimina permanentemente una cartera de forma segura (si no tiene préstamos activos).
+     * @param {string} carteraId - UUID de la cartera.
+     * @returns {Promise<Object>} Resultado de la eliminación.
+     */
     deleteCarteraSeguro: async (carteraId) => {
         try {
             return await fetchApi(`/carteras/${carteraId}/seguro`, { method: 'DELETE' });
@@ -79,6 +104,13 @@ export const carteraService = {
         }
     },
 
+    /**
+     * Asigna un usuario con rol 'encargado' a una cartera específica.
+     * @param {string} carteraId - UUID de la cartera.
+     * @param {string} encargadoId - UUID del usuario encargado.
+     * @param {string} adminId - (Opcional) ID del admin.
+     * @returns {Promise<Object>} Registro de la asignación.
+     */
     assignEncargado: async (carteraId, encargadoId, adminId) => {
         try {
             return await fetchApi(`/carteras/${carteraId}/encargado`, {
@@ -91,6 +123,11 @@ export const carteraService = {
         }
     },
 
+    /**
+     * Remueve la asignación del encargado actual de una cartera.
+     * @param {string} carteraId - UUID de la cartera.
+     * @returns {Promise<Object>} Resultado de la operación.
+     */
     removeEncargado: async (carteraId) => {
         try {
             return await fetchApi(`/carteras/${carteraId}/encargado`, { method: 'DELETE' });
@@ -100,6 +137,11 @@ export const carteraService = {
         }
     },
 
+    /**
+     * Obtiene la información del encargado asignado actualmente a la cartera.
+     * @param {string} carteraId - UUID de la cartera.
+     * @returns {Promise<Object|null>} Datos del encargado o null si no hay.
+     */
     getCarteraEncargado: async (carteraId) => {
         try {
             return await fetchApi(`/carteras/${carteraId}/encargado`);
@@ -109,6 +151,11 @@ export const carteraService = {
         }
     },
 
+    /**
+     * Obtiene el detalle completo de una cartera, incluyendo estadísticas y préstamos asociados.
+     * @param {string} carteraId - UUID de la cartera.
+     * @returns {Promise<Object>} Detalle extendido de la cartera.
+     */
     getCarteraDetalle: async (carteraId) => {
         try {
             return await fetchApi(`/carteras/${carteraId}/detalle`);
@@ -118,6 +165,13 @@ export const carteraService = {
         }
     },
 
+    /**
+     * Registra el retiro de utilidades o ganancias de una cartera.
+     * @param {string} carteraId - UUID de la cartera.
+     * @param {number} monto - Cantidad a retirar.
+     * @param {string} [notas=null] - Razón o justificación del retiro.
+     * @returns {Promise<Object>} Registro del movimiento financiero.
+     */
     retirarUtilidad: async (carteraId, monto, notas = null) => {
         try {
             return await fetchApi(`/carteras/${carteraId}/retiro`, {
@@ -130,9 +184,14 @@ export const carteraService = {
         }
     },
 
-    // TODO: updatePrestamo está en carteraService, debe ser movido a creditoService. 
-    // Por retrocompatibilidad lo mapearemos aquí llamando a creditoService si hace falta.
-    // Como el server lo maneja, mejor hacer el fetch directo a /api/creditos/:id
+    /**
+     * Actualiza un préstamo existente.
+     * Nota de Arquitectura: Se mantiene en carteraService temporalmente por compatibilidad
+     * hacia atrás. Internamente el API enruta al controlador correcto de créditos de forma segura.
+     * @param {string} creditoId - UUID del préstamo/crédito.
+     * @param {Object} updates - Información a actualizar.
+     * @returns {Promise<Object>} Préstamo actualizado.
+     */
     updatePrestamo: async (creditoId, updates) => {
         try {
             return await fetchApi(`/creditos/${creditoId}`, { method: 'PUT', body: updates });
