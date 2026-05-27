@@ -382,7 +382,7 @@ export const resetCompleto = async (req, res) => {
 
         // 2. Ejecutar el reset de tablas en BD pública
         const { data: obj_rpcResult, error: obj_rpcError } = await supabase
-            .rpc('reset_sistema_completo');
+            .rpc('reset_sistema_completo', { p_auth_id: str_requestingId });
 
         if (obj_rpcError) throw obj_rpcError;
         if (obj_rpcResult && !obj_rpcResult.success) throw new Error(obj_rpcResult.message);
