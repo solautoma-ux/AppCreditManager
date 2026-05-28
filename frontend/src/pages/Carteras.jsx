@@ -328,9 +328,10 @@ const Carteras = () => {
         return months.indexOf(monthB) - months.indexOf(monthA);
     });
 
-    // Contadores (solo para Admins)
-    const countMias = carteras.filter(c => !c.encargado).length;
-    const countEncargos = carteras.filter(c => !!c.encargado).length;
+    // Contadores (solo para Admins) - Excluyen carteras archivadas para ser consistentes con el filtro visual
+    const arr_carterasActivas = carteras.filter(c => c.estado !== 'archivada');
+    const countMias = arr_carterasActivas.filter(c => !c.encargado).length;
+    const countEncargos = arr_carterasActivas.filter(c => !!c.encargado).length;
 
     return (
         <Box>
