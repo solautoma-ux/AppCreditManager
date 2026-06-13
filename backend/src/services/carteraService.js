@@ -218,9 +218,14 @@ export const carteraService = {
         }
     },
 
-    retirarUtilidad: async (str_carteraId, dbl_monto, str_notas = null) => {
+    retirarUtilidad: async (str_userToken, str_carteraId, dbl_monto, str_notas = null) => {
         try {
-            const { data, error } = await supabase.rpc('retirar_utilidad_cartera', {
+            // Crear cliente scoped al usuario
+            const supabaseUser = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+                global: { headers: { Authorization: `Bearer ${str_userToken}` } }
+            });
+
+            const { data, error } = await supabaseUser.rpc('retirar_utilidad_cartera', {
                 p_cartera_id: str_carteraId,
                 p_monto: parseFloat(dbl_monto),
                 p_notas: str_notas

@@ -116,10 +116,11 @@ export const retirarUtilidad = async (req, res) => {
     try {
         const { id } = req.params;
         const { monto, notas } = req.body;
+        const str_userToken = req.userToken;
 
         if (!monto) return res.status(400).json({ error: 'Falta el monto a retirar' });
 
-        const result = await carteraService.retirarUtilidad(id, monto, notas);
+        const result = await carteraService.retirarUtilidad(str_userToken, id, monto, notas);
         res.json(result);
     } catch (error) {
         errorHandler(res, error, 'retirarUtilidad');
