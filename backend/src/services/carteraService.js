@@ -218,6 +218,15 @@ export const carteraService = {
         }
     },
 
+    /**
+     * Registra el retiro de utilidades o ganancias de una cartera en la base de datos.
+     * Crea un cliente Supabase con el token del usuario para respetar las reglas de RLS.
+     * @param {string} str_userToken - Token JWT del usuario autenticado.
+     * @param {string} str_carteraId - UUID de la cartera.
+     * @param {number} dbl_monto - Cantidad a retirar.
+     * @param {string} [str_notas=null] - Razón o justificación del retiro.
+     * @returns {Promise<Object>} Registro del movimiento financiero.
+     */
     retirarUtilidad: async (str_userToken, str_carteraId, dbl_monto, str_notas = null) => {
         try {
             // Crear cliente scoped al usuario

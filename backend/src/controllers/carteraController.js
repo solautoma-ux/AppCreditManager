@@ -112,6 +112,12 @@ export const getCarteraDetalle = async (req, res) => {
     }
 };
 
+/**
+ * Procesa la solicitud para retirar utilidades de una cartera.
+ * Extrae el token de usuario, valida el monto y llama al servicio correspondiente.
+ * @param {Object} req - Objeto de solicitud Express.
+ * @param {Object} res - Objeto de respuesta Express.
+ */
 export const retirarUtilidad = async (req, res) => {
     try {
         const { id } = req.params;
