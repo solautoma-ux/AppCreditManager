@@ -124,17 +124,26 @@ const CreditoFormModal = ({ open, onClose, onSuccess, refinanceCredito = null })
 
             // Validar saldo
             const cartera = carteras.find(c => c.id === formData.cartera_id);
-            if (cartera && cartera.saldo_actual <= 0) return 'La cartera seleccionada no tiene saldo ($0)';
+            if (cartera && cartera.saldo_actual <= 0 && !refinanceCredito) return 'La cartera seleccionada no tiene saldo ($0)';
         }
         if (activeStep === 1) {
             if (!formData.monto_capital || parseFloat(formData.monto_capital) <= 0) return 'Ingresa un monto válido';
             if (!formData.tasa_interes) return 'Ingresa la tasa';
             if (!formData.numero_cuotas) return 'Ingresa el # cuotas';
 
-            // Validar monto <= saldo cartera
+            // Validar monto <= saldo cartera (calculando delta si es refinanciación)
             const cartera = carteras.find(c => c.id === formData.cartera_id);
-            if (cartera && parseFloat(formData.monto_capital) > cartera.saldo_actual) {
-                return `Saldo insuficiente. Disponible: $${cartera.saldo_actual.toLocaleString()}`;
+            if (cartera) {
+                let montoRequerido = parseFloat(formData.monto_capital);
+                
+                if (refinanceCredito) {
+                    const saldoAnterior = (refinanceCredito.saldo_capital_pendiente || 0) + (refinanceCredito.saldo_interes_pendiente || 0);
+                    montoRequerido = montoRequerido - saldoAnterior;
+                }
+
+                if (montoRequerido > cartera.saldo_actual) {
+                    return `Saldo insuficiente. Requiere $${montoRequerido.toLocaleString()} adicionales, disponible: $${cartera.saldo_actual.toLocaleString()}`;
+                }
             }
         }
         return null;

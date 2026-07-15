@@ -44,6 +44,12 @@ export const createCredito = async (req, res) => {
     }
 };
 
+/**
+ * Controlador para manejar la solicitud HTTP de refinanciar un crédito.
+ * Recibe el ID del crédito original y los nuevos términos para procesarlos.
+ * @param {Object} req - Objeto de solicitud Express.
+ * @param {Object} res - Objeto de respuesta Express.
+ */
 export const refinanciarCredito = async (req, res) => {
     try {
         const { id: str_id } = req.params;

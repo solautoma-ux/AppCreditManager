@@ -107,6 +107,14 @@ export const createCredito = async (obj_creditoData, str_adminId) => {
     }
 };
 
+/**
+ * Servicio para procesar la refinanciación de un crédito en la base de datos.
+ * Calcula las nuevas cuotas y llama al procedimiento almacenado para aplicar el cambio.
+ * @param {string} str_originalCreditoId - ID del crédito que será refinanciado.
+ * @param {Object} obj_newCreditoData - Datos del nuevo crédito (capital, tasa, cuotas, etc).
+ * @param {string} str_adminId - ID del administrador que autoriza la operación.
+ * @returns {Promise<Object>} Resultado de la refinanciación con los IDs correspondientes.
+ */
 export const refinanciarCredito = async (str_originalCreditoId, obj_newCreditoData, str_adminId) => {
     try {
         const {
