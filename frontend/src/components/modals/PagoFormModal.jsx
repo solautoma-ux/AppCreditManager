@@ -351,16 +351,24 @@ const PagoFormModal = ({ open, onClose, credito: creditoData, onSuccess, onRefin
                                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1 }}>CÉDULA</Typography>
                                 <Typography variant="body2" fontWeight="bold">{credito.cliente?.cedula}</Typography>
                             </Box>
-                            <Box sx={{ textAlign: 'center' }}>
-                                <Chip
-                                    label={credito.estado?.toUpperCase()}
-                                    size="small"
-                                    color={credito.estado === 'activo' ? 'primary' : ['pagado', 'interrumpido', 'refinanciado'].includes(credito.estado) ? 'success' : 'error'}
-                                    sx={{ fontWeight: 'bold', height: 20, fontSize: '0.65rem', borderRadius: '4px' }}
-                                />
-                                <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
-                                    {formatDate(credito.fecha_inicio)}
-                                </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Box sx={{ textAlign: 'center' }}>
+                                    <Chip
+                                        label={credito.estado?.toUpperCase()}
+                                        size="small"
+                                        color={credito.estado === 'activo' ? 'primary' : ['pagado', 'interrumpido', 'refinanciado'].includes(credito.estado) ? 'success' : 'error'}
+                                        sx={{ fontWeight: 'bold', height: 20, fontSize: '0.65rem', borderRadius: '4px' }}
+                                    />
+                                    <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
+                                        {formatDate(credito.fecha_inicio)}
+                                    </Typography>
+                                </Box>
+                                {(credito.tasa_interes !== undefined && credito.tasa_interes !== null) && (
+                                    <Box sx={{ textAlign: 'center', borderLeft: '1px solid', borderColor: 'divider', pl: 2 }}>
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1 }}>TASA</Typography>
+                                        <Typography variant="body2" fontWeight="bold">{credito.tasa_interes}%</Typography>
+                                    </Box>
+                                )}
                             </Box>
                         </Box>
                     )}

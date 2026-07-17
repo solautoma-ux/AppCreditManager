@@ -164,7 +164,7 @@ const CreditoCardBase = ({
                     display: 'flex',
                     gap: 1,
                     alignItems: 'center',
-                    justifyContent: obj_paymentItem ? 'space-between' : 'flex-start',
+                    justifyContent: 'space-between',
                     color: 'text.secondary',
                     fontSize: '0.85rem',
                     bgcolor: 'background.default',
@@ -175,11 +175,18 @@ const CreditoCardBase = ({
                         <TodayIcon fontSize="small" />
                         <span>Prox: {formatDate(obj_paymentItem ? obj_paymentItem.fecha_vencimiento : obj_credito?.fecha_proximo_pago)}</span>
                     </Box>
-                    {obj_paymentItem && (
-                        <Typography variant="subtitle2" fontWeight="bold" color="success.main">
-                            {formatCurrency(obj_paymentItem.monto_cuota)}
-                        </Typography>
-                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        {(obj_credito?.tasa_interes !== undefined && obj_credito?.tasa_interes !== null) && (
+                            <Typography variant="caption" fontWeight="bold" sx={{ color: 'text.secondary' }}>
+                                Tasa: {obj_credito.tasa_interes}%
+                            </Typography>
+                        )}
+                        {obj_paymentItem && (
+                            <Typography variant="subtitle2" fontWeight="bold" color="success.main">
+                                {formatCurrency(obj_paymentItem.monto_cuota)}
+                            </Typography>
+                        )}
+                    </Box>
                 </Box>
 
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>

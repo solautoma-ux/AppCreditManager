@@ -143,14 +143,22 @@ const CreditoCard = ({ credito, onPay, onClick, onDelete, onLiquidate, onRefinan
                     display: 'flex',
                     gap: 1,
                     alignItems: 'center',
+                    justifyContent: 'space-between',
                     color: 'text.secondary',
                     fontSize: '0.85rem',
                     bgcolor: 'background.default',
                     p: 1,
                     borderRadius: 2
                 }}>
-                    <CalendarTodayIcon fontSize="small" />
-                    <span>Prox: {formatDate(credito.fecha_proximo_pago)}</span>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarTodayIcon fontSize="small" />
+                        <span>Prox: {formatDate(credito.fecha_proximo_pago)}</span>
+                    </Box>
+                    {(credito.tasa_interes !== undefined && credito.tasa_interes !== null) && (
+                        <Typography variant="caption" fontWeight="bold" sx={{ color: 'text.secondary' }}>
+                            Tasa: {credito.tasa_interes}%
+                        </Typography>
+                    )}
                 </Box>
 
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>

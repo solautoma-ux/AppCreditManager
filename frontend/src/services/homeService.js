@@ -14,8 +14,9 @@ export const homeService = {
                 .toISOString().split('T')[0];
             const today = localDate;
 
-            // Trigger status update (fire and forget or await)
-            await supabase.rpc('check_and_update_credit_statuses');
+            // Trigger status update with dynamic timezone
+            const str_userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            await supabase.rpc('check_and_update_credit_statuses', { p_timezone: str_userTimezone });
 
             // Build query for amortizaciones that expire today and are not paid
             let query = supabase

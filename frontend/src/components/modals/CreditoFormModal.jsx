@@ -39,7 +39,7 @@ const CreditoFormModal = ({ open, onClose, onSuccess, refinanceCredito = null })
         tasa_interes: '20', // Default 20%
         numero_cuotas: '24', // Default 24 diarias
         frecuencia: 'diaria',
-        fecha_inicio: new Date().toISOString().split('T')[0]
+        fecha_inicio: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
     });
 
     // Simulacion
@@ -60,7 +60,7 @@ const CreditoFormModal = ({ open, onClose, onSuccess, refinanceCredito = null })
                 tasa_interes: '20',
                 numero_cuotas: '24',
                 frecuencia: 'diaria',
-                fecha_inicio: new Date().toISOString().split('T')[0]
+                fecha_inicio: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
             });
             setSimulation(null);
             setError(null);

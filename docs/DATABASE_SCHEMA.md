@@ -81,6 +81,16 @@
 
 ## RPC Functions (Backend Logic)
 
+> [!IMPORTANT]
+> **Modelo de Seguridad Estricto (Migraciones 181 & 182):** 
+> Todas las funciones financieras y de negocio en el esquema `public` tienen revocado el permiso `EXECUTE` para roles `anon`, `authenticated` y `PUBLIC`. 
+> - **Backend:** Debe invocarlas usando el cliente inicializado con `SUPABASE_SERVICE_ROLE_KEY`.
+> - **Excepciones Frontend:** Solo 8 funciones están permitidas para el rol `authenticated` (e.g., `vincular_cuenta_por_email`, helpers de RLS como `current_user_id`, y reportes de auditoría puros).
+
+### `check_and_update_credit_statuses`
+- **Description**: Evaluates all active credits and marks them as 'vencido' if their due date has passed, or 'pagado' if their balances are zero. Uses dynamic timezone to evaluate "today" accurately for multi-tenant users.
+- **Inputs**: `p_timezone` (text, default 'UTC') - The timezone of the client executing the check.
+
 ### `registrar_pago_completo`
 - **Description**: Atomic transaction to register a payment, update credit balances using `GREATEST(0, ...)` safety, update wallet balances, and handle status transition to 'pagado'.
 - **Inputs**: `p_credito_id`, `p_monto_total`, `p_monto_a_capital`, `p_monto_a_interes`, `p_fecha_pago`, `p_registrado_por` (UUID), `p_notas`.
